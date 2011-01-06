@@ -1,12 +1,12 @@
-var WindowManager = import('lib/WindowManager.js');
+import('lib/WindowManager.js');
+import('lib/prefs.js');
 var timer = import('lib/jstimer.jsm');
-var prefs = import('lib/prefs.js').prefs;
 
 function shutdown()
 {
 	WindowManager = void(0);
-	timer = void(0);
 	prefs = void(0);
+	timer = void(0);
 }
 
 var EXPORTED_SYMBOLS = ['BackToOwner'];
@@ -19,7 +19,8 @@ BackToOwner.prototype = {
 	PREFROOT : 'extensions.backtoowner@piro.sakura.ne.jp.',
 
 	defaultPrefs : {
-		'shouldCloseTab' : true
+		'shouldCloseTab'    : true,
+		'shouldCloseWindow' : true
 	},
 
 	initPrefs : function()
@@ -54,6 +55,11 @@ BackToOwner.prototype = {
 	{
 		return this._window.gBrowser;
 	},
+
+	get treeStyleTab() 
+	{
+		return 'TreeStyleTabService' in this._window ? this._window.TreeStyleTabService : null ;
+	},
 	
 	get backCommand() 
 	{
@@ -72,6 +78,19 @@ BackToOwner.prototype = {
 			!aTab.hasAttribute('pinned') && // App Tabs (Firefox 4), Tab Utilities
 			!aTab.hasAttribute('protected') && // Tab Utilities, Tab Mix Plus
 			prefs.getPref(this.PREFROOT+'shouldCloseTab')
+		);
+	},
+
+	shouldCloseWindow : function(aTab)
+	{
+		var b = this.browser;
+		return (
+			!aTab.hasAttribute('protected') && // Tab Utilities, Tab Mix Plus
+			(this.treeStyleTab ?
+				(this.treeStyleTab.getDescendantTabs(aTab).length + 1 == b.browsers.length) :
+				(b.browsers.length == 1 && b.selectedTab == aTab)
+				) &&
+			prefs.getPref(this.PREFROOT+'shouldCloseWindow')
 		);
 	},
   
@@ -161,9 +180,8 @@ BackToOwner.prototype = {
 		if (!aTab)
 			return null;
 
-		var w = this._window;
-		var owner = 'TreeStyleTabService' in w && w.TreeStyleTabService.getParentTab ?
-						w.TreeStyleTabService.getParentTab(aTab) :
+		var owner = this.treeStyleTab ?
+						this.treeStyleTab.getParentTab(aTab) :
 						aTab.owner || null ;
 
 		if (!owner) {
@@ -185,6 +203,18 @@ BackToOwner.prototype = {
 		}
 
 		return owner;
+	},
+
+	closeTab : function(aTab)
+	{
+		if (
+			this.treeStyleTab &&
+			this.treeStyleTab.removeTabSubtree &&
+			this.treeStyleTab.hasChildTabs(aTab)
+			)
+			this.treeStyleTab.removeTabSubtree(aTab);
+		else
+			this.browser.removeTab(aTab, { animate : true });
 	},
  
 /* event handling */ 
@@ -216,17 +246,17 @@ BackToOwner.prototype = {
 
 		aEvent.stopPropagation();
 
-		this.browser.selectedTab = owner;
+		if (owner.ownerDocument == this._window.document)
+			this.browser.selectedTab = owner;
 
 		if (this.shouldCloseTab(tab)) {
-			if ('TreeStyleTabService' in this._window &&
-				this._window.TreeStyleTabService.removeTabSubtree &&
-				this._window.TreeStyleTabService.hasChildTabs &&
-				this._window.TreeStyleTabService.hasChildTabs(tab)
-				)
-				this._window.TreeStyleTabService.removeTabSubtree(tab);
-			else
-				this.browser.removeTab(tab, { animate : true });
+			if (this.shouldCloseWindow(tab)) {
+				timer.setTimeout(function(aSelf) { aSelf._window.close(); }, 0, this);
+				owner.linkedBrowser.contentWindow.focus();
+			}
+			else {
+				this.closeTab(tab);
+			}
 		}
 
 		return true;
