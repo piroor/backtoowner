@@ -15,6 +15,23 @@ BackToOwner.prototype = {
 	
 /* Utilities */ 
 	
+	get isLegacy()
+	{
+		return this.Comparator.compare(this.XULAppInfo.version, '4.0b1') < 0;
+	},
+	get XULAppInfo()
+	{
+		return this._XULAppInfo ||
+				(this._XULAppInfo = Cc['@mozilla.org/xre/app-info;1']
+									.getService(Ci.nsIXULAppInfo)
+									.QueryInterface(Ci.nsIXULRuntime));
+	},
+	get Comparator() {
+		return this._Comparator ||
+				(this._Comparator = Cc['@mozilla.org/xpcom/version-comparator;1']
+									.getService(Ci.nsIVersionComparator));
+	},
+
 	get browser() 
 	{
 		return this._window.gBrowser;
@@ -58,6 +75,8 @@ BackToOwner.prototype = {
 
 		this.initCommand(this.backCommand);
 		this.initCommand(this.backOrDuplicateCommand);
+
+		timer.setTimeout(function(aSelf) { aSelf.updateCommands(); }, 0, this);
 	},
  
 	destroy : function() 
@@ -80,16 +99,23 @@ BackToOwner.prototype = {
 	{
 		if (!aCommand) return;
 
-		this.updateCommand(aCommand);
-
-		aCommand.addEventListener('command', this, true);
+		if (this.isLegacy) { // Firefox 3.6 or older doesn't fire DOMXULCommand events on original command elements.
+			aCommand.setAttribute('oncommand', 'if (backToOwner.onCommand(event)) return; '+aCommand.getAttribute('oncommand'));
+		}
+		else {
+			aCommand.addEventListener('command', this, true);
+		}
 	},
  
 	destroyCommand : function(aCommand) 
 	{
 		if (!aCommand) return;
 
-		aCommand.removeEventListener('command', this, true);
+		if (this.isLegacy) { // Firefox 3.6 or older doesn't fire DOMXULCommand events on original command elements.
+		}
+		else {
+			aCommand.removeEventListener('command', this, true);
+		}
 
 		if (this.browser.canGoBack)
 			aCommand.removeAttribute('disabled');
@@ -146,7 +172,7 @@ BackToOwner.prototype = {
 		var tab = this.browser.selectedTab;
 		var owner = this.getOwner(tab);
 		if (!owner)
-			return;
+			return false;
 
 		aEvent.stopPropagation();
 
@@ -154,6 +180,8 @@ BackToOwner.prototype = {
 
 		if (this.shouldCloseTab(tab))
 			this.browser.removeTab(tab, { animate : true });
+
+		return true;
 	},
 
 /* nsIWebProgressListener */
@@ -164,8 +192,11 @@ BackToOwner.prototype = {
 	onLocationChange : function(aWebProgress, aRequest, aLocation)
 	{
 		this.updateCommands();
-		// on Firefox 3.6, we have to do it with delay.
-		timer.setTimeout(function(aSelf) { aSelf.updateCommands(); }, 0, this);
+
+		if (this.isLegacy) {
+			// on Firefox 3.6 or olders, we have to do it with delay.
+			timer.setTimeout(function(aSelf) { aSelf.updateCommands(); }, 0, this);
+		}
 	},
 
 /* nsIWebProgressListener2 */
