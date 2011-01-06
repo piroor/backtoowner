@@ -31,6 +31,8 @@ BackToOwner.prototype = {
 		this._window = aWindow;
 
 		this._window.addEventListener('unload', this, false);
+		this._window.addEventListener('TreeStyleTabAttached', this, false);
+		this._window.addEventListener('TreeStyleTabParted', this, false);
 		this.browser.addProgressListener(this, Ci.nsIWebProgress.NOTIFY_ALL);
 		this.initCommand(this.backCommand);
 		this.initCommand(this.backOrDuplicateCommand);
@@ -39,6 +41,8 @@ BackToOwner.prototype = {
 	destroy : function() 
 	{
 		this._window.removeEventListener('unload', this, false);
+		this._window.removeEventListener('TreeStyleTabAttached', this, false);
+		this._window.removeEventListener('TreeStyleTabParted', this, false);
 		this.browser.removeProgressListener(this);
 		this.destroyCommand(this.backCommand);
 		this.destroyCommand(this.backOrDuplicateCommand);
@@ -78,6 +82,12 @@ BackToOwner.prototype = {
 			aCommand.removeAttribute('disabled');
 	},
 
+	updateCommands : function()
+	{
+		this.updateCommand(this.backCommand);
+		this.updateCommand(this.backOrDuplicateCommand);
+	},
+
 	getOwner : function(aTab)
 	{
 		var w = this._window;
@@ -95,6 +105,12 @@ BackToOwner.prototype = {
 			case 'unload':
 				return this.destroy();
 
+			case 'TreeStyleTabAttached':
+			case 'TreeStyleTabParted':
+				if (aEvent.target == this.browser.selectedTab)
+					this.updateCommands();
+				return;
+
 			case 'command':
 				return this.onCommand(aEvent);
 		}
@@ -102,7 +118,16 @@ BackToOwner.prototype = {
 
 	onCommand : function(aEvent)
 	{
-		dump('onCommand\n');
+		var tab = this.browser.selectedTab;
+		var owner = this.getOwner(tab);
+		if (!owner)
+			return;
+
+		aEvent.stopPropagation();
+
+		this.browser.selectedTab = owner;
+
+		// this.browser.removeTab(tab, { animate : true });
 	},
 
 /* nsIWebProgressListener */
@@ -112,8 +137,7 @@ BackToOwner.prototype = {
 	onSecurityChange : function() {},
 	onLocationChange : function(aWebProgress, aRequest, aLocation)
 	{
-		this.updateCommand(this.backCommand);
-		this.updateCommand(this.backOrDuplicateCommand);
+		this.updateCommands();
 	},
 
 /* nsIWebProgressListener2 */
