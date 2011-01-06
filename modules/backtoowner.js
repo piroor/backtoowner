@@ -1,8 +1,10 @@
+var WindowManager = import('lib/WindowManager');
 var timer = import('lib/jstimer.jsm');
 
 function shutdown()
 {
-	timer = null;
+	WindowManager = void(0);
+	timer = void(0);
 }
 
 var EXPORTED_SYMBOLS = ['BackToOwner'];
@@ -141,10 +143,32 @@ BackToOwner.prototype = {
 
 	getOwner : function(aTab)
 	{
+		if (!aTab)
+			return null;
+
 		var w = this._window;
-		return !aTab ? null :
-				'TreeStyleTabService' in w ? w.TreeStyleTabService.getParentTab(aTab) :
-				aTab.owner || null ;
+		var owner = 'TreeStyleTabService' in w ? w.TreeStyleTabService.getParentTab(aTab) :
+					aTab.owner || null ;
+
+		if (!owner) {
+			let opener = aTab.linkedBrowser.contentWindow.opener;
+			if (opener) {
+				opener = opener.top || opener;
+				WindowManager.getWindows('navigator:browser')
+					.some(function(aWindow) {
+						if (Array.slice(aWindow.gBrowser.mTabContainer.childNodes)
+								.some(function(aTab) {
+									if (aTab.linkedBrowser.contentWindow == opener)
+										return owner = aTab;
+									return false;
+								}))
+							return true;
+						return false;
+					});
+			}
+		}
+
+		return owner;
 	},
  
 /* event handling */ 
