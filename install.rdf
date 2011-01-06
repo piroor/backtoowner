@@ -23,8 +23,8 @@
     </em:localized>
     <em:localized>
       <RDF:Description em:locale="ja"
-                       em:name="親他部に戻る（Back to Owner Tab）"
-                       em:description="親の他部に戻ります。"
+                       em:name="親のタブに戻る（Back to Owner Tab）"
+                       em:description="親のタブに戻ります。"
                        em:homepageURL="http://piro.sakura.ne.jp/xul/_backtoowner.html"/>
     </em:localized>
 
