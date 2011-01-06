@@ -238,6 +238,9 @@ BackToOwner.prototype = {
 
 	onCommand : function(aEvent)
 	{
+		if (this.browser.canGoBack)
+			return false;
+
 		var tab = this.browser.selectedTab;
 		var owner = this.getOwner(tab);
 		if (!owner)
