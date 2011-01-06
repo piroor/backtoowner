@@ -1,3 +1,10 @@
+var timer = import('lib/jstimer.jsm');
+
+function shutdown()
+{
+	timer = null;
+}
+
 var EXPORTED_SYMBOLS = ['BackToOwner'];
  
 function BackToOwner(aWindow) 
@@ -157,6 +164,8 @@ BackToOwner.prototype = {
 	onLocationChange : function(aWebProgress, aRequest, aLocation)
 	{
 		this.updateCommands();
+		// on Firefox 3.6, we have to do it with delay.
+		timer.setTimeout(function(aSelf) { aSelf.updateCommands(); }, 0, this);
 	},
 
 /* nsIWebProgressListener2 */
