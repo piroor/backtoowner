@@ -162,8 +162,9 @@ BackToOwner.prototype = {
 			return null;
 
 		var w = this._window;
-		var owner = 'TreeStyleTabService' in w ? w.TreeStyleTabService.getParentTab(aTab) :
-					aTab.owner || null ;
+		var owner = 'TreeStyleTabService' in w && w.TreeStyleTabService.getParentTab ?
+						w.TreeStyleTabService.getParentTab(aTab) :
+						aTab.owner || null ;
 
 		if (!owner) {
 			let opener = aTab.linkedBrowser.contentWindow.opener;
@@ -219,7 +220,10 @@ BackToOwner.prototype = {
 
 		if (this.shouldCloseTab(tab)) {
 			if ('TreeStyleTabService' in this._window &&
-				this._window.TreeStyleTabService.removeTabSubtree)
+				this._window.TreeStyleTabService.removeTabSubtree &&
+				this._window.TreeStyleTabService.hasChildTabs &&
+				this._window.TreeStyleTabService.hasChildTabs(tab)
+				)
 				this._window.TreeStyleTabService.removeTabSubtree(tab);
 			else
 				this.browser.removeTab(tab, { animate : true });
