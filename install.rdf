@@ -5,7 +5,7 @@
   <RDF:Description RDF:about="urn:mozilla:install-manifest"
                    em:id="backtoowner@piro.sakura.ne.jp"
                    em:name="Back to Owner Tab"
-                   em:version="0.1.2011010601"
+                   em:version="0.1.2011010701"
                    em:creator="SHIMODA Hiroshi"
                    em:description="Backs to the owner tab."
                    em:homepageURL="http://piro.sakura.ne.jp/xul/backtoowner/"
