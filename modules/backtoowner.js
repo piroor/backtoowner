@@ -217,8 +217,13 @@ BackToOwner.prototype = {
 
 		this.browser.selectedTab = owner;
 
-		if (this.shouldCloseTab(tab))
-			this.browser.removeTab(tab, { animate : true });
+		if (this.shouldCloseTab(tab)) {
+			if ('TreeStyleTabService' in this._window &&
+				this._window.TreeStyleTabService.removeTabSubtree)
+				this._window.TreeStyleTabService.removeTabSubtree(tab);
+			else
+				this.browser.removeTab(tab, { animate : true });
+		}
 
 		return true;
 	},
