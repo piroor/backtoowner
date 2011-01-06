@@ -1,10 +1,12 @@
-var WindowManager = import('lib/WindowManager');
+var WindowManager = import('lib/WindowManager.js');
 var timer = import('lib/jstimer.jsm');
+var prefs = import('lib/prefs.js').prefs;
 
 function shutdown()
 {
 	WindowManager = void(0);
 	timer = void(0);
+	prefs = void(0);
 }
 
 var EXPORTED_SYMBOLS = ['BackToOwner'];
@@ -14,6 +16,20 @@ function BackToOwner(aWindow)
 	this.init(aWindow);
 }
 BackToOwner.prototype = {
+	PREFROOT : 'extensions.backtoowner@piro.sakura.ne.jp.',
+
+	defaultPrefs : {
+		'shouldCloseTab' : true
+	},
+
+	initPrefs : function()
+	{
+		for (var i in this.defaultPrefs)
+		{
+			if (prefs.getPref(this.PREFROOT+i) === null)
+				prefs.setPref(this.PREFROOT+i, this.defaultPrefs[i]);
+		}
+	},
 	
 /* Utilities */ 
 	
@@ -55,10 +71,7 @@ BackToOwner.prototype = {
 			aTab &&
 			!aTab.hasAttribute('pinned') && // App Tabs (Firefox 4), Tab Utilities
 			!aTab.hasAttribute('protected') && // Tab Utilities, Tab Mix Plus
-			('TreeStyleTabService' in this._window ? // Tree Style Tab
-				!this._window.TreeStyleTabService.hasChildTabs(aTab) :
-				true
-			)
+			prefs.getPref(this.PREFROOT+'shouldCloseTab')
 		);
 	},
   
@@ -68,6 +81,8 @@ BackToOwner.prototype = {
 	{
 		if (!('gBrowser' in aWindow)) return;
 		this._window = aWindow;
+
+		this.initPrefs();
 
 		this._window.addEventListener('unload', this, false);
 		this._window.addEventListener('TreeStyleTabAttached', this, false);
