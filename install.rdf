@@ -18,13 +18,13 @@
     <em:localized>
       <RDF:Description em:locale="en-US"
                        em:name="Back to Owner Tab"
-                       em:description="Backs to the owner tab."
+                       em:description="Backs to the owner tab, if there is no history to back."
                        em:homepageURL="http://piro.sakura.ne.jp/xul/_backtoowner.html.en"/>
     </em:localized>
     <em:localized>
       <RDF:Description em:locale="ja"
                        em:name="親のタブに戻る（Back to Owner Tab）"
-                       em:description="親のタブに戻ります。"
+                       em:description="それ以上「戻る」で戻れない場合に、親のタブに戻ります。"
                        em:homepageURL="http://piro.sakura.ne.jp/xul/_backtoowner.html"/>
     </em:localized>
 
