@@ -22,6 +22,19 @@ BackToOwner.prototype = {
 	{
 		return this._window.document.getElementById('Browser:BackOrBackDuplicate');
 	},
+
+	shouldCloseTab : function(aTab)
+	{
+		return (
+			aTab &&
+			!aTab.hasAttribute('pinned') && // App Tabs (Firefox 4), Tab Utilities
+			!aTab.hasAttribute('protected') && // Tab Utilities, Tab Mix Plus
+			('TreeStyleTabService' in this._window ? // Tree Style Tab
+				!this._window.TreeStyleTabService.hasChildTabs(aTab) :
+				true
+			)
+		);
+	},
   
 /* Initializing */ 
 	
@@ -33,7 +46,9 @@ BackToOwner.prototype = {
 		this._window.addEventListener('unload', this, false);
 		this._window.addEventListener('TreeStyleTabAttached', this, false);
 		this._window.addEventListener('TreeStyleTabParted', this, false);
+
 		this.browser.addProgressListener(this, Ci.nsIWebProgress.NOTIFY_ALL);
+
 		this.initCommand(this.backCommand);
 		this.initCommand(this.backOrDuplicateCommand);
 	},
@@ -43,9 +58,12 @@ BackToOwner.prototype = {
 		this._window.removeEventListener('unload', this, false);
 		this._window.removeEventListener('TreeStyleTabAttached', this, false);
 		this._window.removeEventListener('TreeStyleTabParted', this, false);
+
 		this.browser.removeProgressListener(this);
+
 		this.destroyCommand(this.backCommand);
 		this.destroyCommand(this.backOrDuplicateCommand);
+
 		this._window = null;
 	},
   
@@ -127,7 +145,8 @@ BackToOwner.prototype = {
 
 		this.browser.selectedTab = owner;
 
-		// this.browser.removeTab(tab, { animate : true });
+		if (this.shouldCloseTab(tab))
+			this.browser.removeTab(tab, { animate : true });
 	},
 
 /* nsIWebProgressListener */
