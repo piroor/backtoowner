@@ -19,8 +19,7 @@ BackToOwner.prototype = {
 	PREFROOT : 'extensions.backtoowner@piro.sakura.ne.jp.',
 
 	defaultPrefs : {
-		'shouldCloseTab'    : true,
-		'shouldCloseWindow' : true
+		'shouldCloseTab' : true
 	},
 
 	initPrefs : function()
@@ -90,7 +89,7 @@ BackToOwner.prototype = {
 				(this.treeStyleTab.getDescendantTabs(aTab).length + 1 == b.browsers.length) :
 				(b.browsers.length == 1 && b.selectedTab == aTab)
 				) &&
-			prefs.getPref(this.PREFROOT+'shouldCloseWindow')
+			prefs.getPref('browser.tabs.closeWindowWithLastTab')
 		);
 	},
   
