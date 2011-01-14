@@ -19,7 +19,8 @@ BackToOwner.prototype = {
 	PREFROOT : 'extensions.backtoowner@piro.sakura.ne.jp.',
 
 	defaultPrefs : {
-		'shouldCloseTab' : true
+		'shouldCloseTab'  : false,
+		'shouldCloseTree' : false
 	},
 
 	initPrefs : function()
@@ -209,6 +210,7 @@ BackToOwner.prototype = {
 		if (
 			this.treeStyleTab &&
 			this.treeStyleTab.removeTabSubtree &&
+			prefs.getPref(this.PREFROOT+'shouldCloseTree') &&
 			this.treeStyleTab.hasChildTabs(aTab)
 			)
 			this.treeStyleTab.removeTabSubtree(aTab);
