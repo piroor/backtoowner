@@ -5,8 +5,8 @@
  *
  * @license
  *   The MIT License, Copyright (c) 2010-2011 SHIMODA "Piro" Hiroshi.
- *   http://www.cozmixng.org/repos/piro/restartless-addon/trunk/license.txt
- * @url http://www.cozmixng.org/repos/piro/restartless-addon/trunk/restartless/
+ *   https://github.com/piroor/restartless/blob/master/license.txt
+ * @url http://github.com/piroor/restartless
  */
 
 /** You must change ADDON_ID for your addon. */
@@ -58,10 +58,10 @@ StartupService.prototype = {
 			(this._IOService = Cc['@mozilla.org/network/io-service;1']
 									.getService(Ci.nsIIOService));
 	},
-	get Loader()
+	get JSLoader()
 	{
-		return this._Loader ||
-			(this._Loader = Cc['@mozilla.org/moz/jssubscript-loader;1']
+		return this._JSLoader ||
+			(this._JSLoader = Cc['@mozilla.org/moz/jssubscript-loader;1']
 									.getService(Ci.mozIJSSubScriptLoader));
 	},
 	get Loader()
@@ -71,7 +71,7 @@ StartupService.prototype = {
 			let loader = this.root.clone();
 			loader.append('components');
 			loader.append('loader.js');
-			this.Loader.loadSubScript(this.IOService.newFileURI(loader).spec, this._Loader);
+			this.JSLoader.loadSubScript(this.IOService.newFileURI(loader).spec, this._Loader);
 		}
 		return this._Loader;
 	},
@@ -115,5 +115,4 @@ StartupService.prototype = {
 		this.Loader.shutdown('APP_SHUTDOWN');
 	}
 };
-
 var NSGetModule = XPCOMUtils.generateNSGetModule([StartupService]);

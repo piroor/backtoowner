@@ -1,6 +1,6 @@
-load('lib/WindowManager.js');
-load('lib/prefs.js');
-var timer = load('lib/jstimer.jsm');
+load('lib/WindowManager');
+load('lib/prefs');
+var timer = load('lib/jstimer');
 
 function shutdown()
 {
