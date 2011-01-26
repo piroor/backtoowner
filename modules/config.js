@@ -15,7 +15,7 @@ config.register('resource://backtoowner/modules/lib/config.html', <>
 	xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
 	title={bundle.getString('title')}>
 
-	<prefpane id="prefpane-general" label="general">
+	<prefpane id="prefpane-general" label={bundle.getString('general')}>
 		<preferences>
 			<preference id="shouldCloseTab"
 				name="extensions.backtoowner@piro.sakura.ne.jp.shouldCloseTab"

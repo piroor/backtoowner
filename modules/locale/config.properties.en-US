@@ -1,4 +1,5 @@
 title=Back to Owner Tab Configuration
 
+general=General
 shouldCloseTab=Close tab on go back
 shouldCloseTree=Close whole tree if Tree Style Tab is installed

@@ -1,4 +1,5 @@
 title=親のタブに戻る設定
 
+general=全般
 shouldCloseTab=戻る時にタブを閉じる
 shouldCloseTree=ツリー型タブがある場合はツリー全体を閉じる
