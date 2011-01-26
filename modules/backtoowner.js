@@ -2,6 +2,8 @@ load('lib/WindowManager');
 load('lib/prefs');
 var timer = load('lib/jstimer');
 
+load('config');
+
 function shutdown()
 {
 	WindowManager = void(0);
@@ -17,20 +19,6 @@ function BackToOwner(aWindow)
 }
 BackToOwner.prototype = {
 	PREFROOT : 'extensions.backtoowner@piro.sakura.ne.jp.',
-
-	defaultPrefs : {
-		'shouldCloseTab'  : false,
-		'shouldCloseTree' : false
-	},
-
-	initPrefs : function()
-	{
-		for (var i in this.defaultPrefs)
-		{
-			if (prefs.getPref(this.PREFROOT+i) === null)
-				prefs.setPref(this.PREFROOT+i, this.defaultPrefs[i]);
-		}
-	},
 	
 /* Utilities */ 
 	
@@ -100,8 +88,6 @@ BackToOwner.prototype = {
 	{
 		if (!('gBrowser' in aWindow)) return;
 		this._window = aWindow;
-
-		this.initPrefs();
 
 		this._window.addEventListener('unload', this, false);
 		this._window.addEventListener('TreeStyleTabAttached', this, false);
