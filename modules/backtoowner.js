@@ -1,6 +1,6 @@
-import('lib/WindowManager.js');
-import('lib/prefs.js');
-var timer = import('lib/jstimer.jsm');
+load('lib/WindowManager.js');
+load('lib/prefs.js');
+var timer = load('lib/jstimer.jsm');
 
 function shutdown()
 {

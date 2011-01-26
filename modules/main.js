@@ -1,5 +1,5 @@
-import('lib/WindowManager');
-import('backtoowner');
+load('lib/WindowManager');
+load('backtoowner');
 
 const TYPE_BROWSER = 'navigator:browser';
 

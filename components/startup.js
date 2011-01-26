@@ -4,7 +4,7 @@
  * @version      1
  *
  * @license
- *   The MIT License, Copyright (c) 2010 SHIMODA "Piro" Hiroshi.
+ *   The MIT License, Copyright (c) 2010-2011 SHIMODA "Piro" Hiroshi.
  *   http://www.cozmixng.org/repos/piro/restartless-addon/trunk/license.txt
  * @url http://www.cozmixng.org/repos/piro/restartless-addon/trunk/restartless/
  */
@@ -64,16 +64,16 @@ StartupService.prototype = {
 			(this._Loader = Cc['@mozilla.org/moz/jssubscript-loader;1']
 									.getService(Ci.mozIJSSubScriptLoader));
 	},
-	get Importer()
+	get Loader()
 	{
-		if (!this._Importer) {
-			this._Importer = {};
-			let importer = this.root.clone();
-			importer.append('components');
-			importer.append('importer.js');
-			this.Loader.loadSubScript(this.IOService.newFileURI(importer).spec, this._Importer);
+		if (!this._Loader) {
+			this._Loader = {};
+			let loader = this.root.clone();
+			loader.append('components');
+			loader.append('loader.js');
+			this.Loader.loadSubScript(this.IOService.newFileURI(loader).spec, this._Loader);
 		}
-		return this._Importer;
+		return this._Loader;
 	},
 	get ExtensionManager()
 	{
@@ -103,14 +103,17 @@ StartupService.prototype = {
 	},
 	onStartup : function()
 	{
+		this.Loader.registerResource(ADDON_ID.split('@')[0], this.IOService.newFileURI(this.root));
+
 		let main = this.root.clone();
 		main.append('modules');
 		main.append('main.js');
-		this.Importer.import(this.IOService.newFileURI(main).spec);
+		this.Loader.load(this.IOService.newFileURI(main).spec);
 	},
 	onShutdown : function()
 	{
-		this.Importer.shutdown('APP_SHUTDOWN');
+		this.Loader.shutdown('APP_SHUTDOWN');
 	}
 };
+
 var NSGetModule = XPCOMUtils.generateNSGetModule([StartupService]);
