@@ -28,9 +28,12 @@ config.register('resource://backtoowner/config', <>
 		<checkbox id="shouldCloseTab-checkbox"
 			label={bundle.getString('shouldCloseTab')}
 			preference="shouldCloseTab"/>
-		<checkbox id="shouldCloseTree-checkbox"
-			label={bundle.getString('shouldCloseTree')}
-			preference="shouldCloseTree"/>
+		<hbox align="center">
+			<spacer style="width:1em;"/>
+			<checkbox id="shouldCloseTree-checkbox"
+				label={bundle.getString('shouldCloseTree')}
+				preference="shouldCloseTree"/>
+		</hbox>
 
 	</prefpane>
 
