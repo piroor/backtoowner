@@ -6,8 +6,7 @@ config.setDefault(PREFROOT+'shouldCloseTab', false);
 config.setDefault(PREFROOT+'shouldCloseTree', false);
 
 var bundle = require('lib/locale')
-				.get(location.href.replace(/[^\/]+$/, '')+
-						'locale/config.properties');
+				.get('locale/config.properties', location.href);
 
 config.register('resource://backtoowner/modules/lib/config.html', <>
 
