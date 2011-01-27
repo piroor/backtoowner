@@ -8,7 +8,7 @@ config.setDefault(PREFROOT+'shouldCloseTree', false);
 var bundle = require('lib/locale')
 				.get('locale/config.properties', location.href);
 
-config.register('resource://backtoowner/modules/lib/config.html', <>
+config.register('resource://backtoowner/config', <>
 
 <prefwindow id="backtoowner-config"
 	xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
