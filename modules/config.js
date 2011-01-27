@@ -39,4 +39,4 @@ config.register('resource://backtoowner/config', <>
 
 </prefwindow>
 
-</>.toXMLString());
+</>);
