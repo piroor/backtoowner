@@ -17,10 +17,10 @@ config.register('resource://backtoowner/config', <>
 	<prefpane id="prefpane-general" label={bundle.getString('general')}>
 		<preferences>
 			<preference id="shouldCloseTab"
-				name="extensions.backtoowner@piro.sakura.ne.jp.shouldCloseTab"
+				name={PREFROOT+'shouldCloseTab'}
 				type="bool"/>
 			<preference id="shouldCloseTree"
-				name="extensions.backtoowner@piro.sakura.ne.jp.shouldCloseTree"
+				name={PREFROOT+'shouldCloseTree'}
 				type="bool"/>
 		</preferences>
 
