@@ -1,4 +1,4 @@
-load('lib/config');
+var config = require('lib/config');
 
 const PREFROOT = 'extensions.backtoowner@piro.sakura.ne.jp.';
 
