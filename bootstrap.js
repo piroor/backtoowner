@@ -5,14 +5,14 @@
  *
  * @description
  *   This provides ability to load a script file placed to "modules/main.js".
- *   Functions named "shutdown", defined in main.js and any imported script
+ *   Functions named "shutdown", defined in main.js and any loaded script
  *   will be called when the addon is disabled or uninstalled (include
  *   updating).
  *
  * @license
  *   The MIT License, Copyright (c) 2010-2011 SHIMODA "Piro" Hiroshi.
- *   http://www.cozmixng.org/repos/piro/restartless-addon/trunk/license.txt
- * @url http://www.cozmixng.org/repos/piro/restartless-addon/trunk/
+ *   https://github.com/piroor/restartless/blob/master/license.txt
+ * @url http://github.com/piroor/restartless
  */
 
 var _gLoader;
