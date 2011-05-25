@@ -92,6 +92,7 @@ BackToOwner.prototype = {
 		this._window.addEventListener('unload', this, false);
 		this._window.addEventListener('TreeStyleTabAttached', this, false);
 		this._window.addEventListener('TreeStyleTabParted', this, false);
+		this._window.addEventListener('AppCommand', this, true);
 
 		if (this.browser.addProgressListener.arity == 1) // Firefox 4.1 or later
 			this.browser.addProgressListener(this);
@@ -109,6 +110,7 @@ BackToOwner.prototype = {
 		this._window.removeEventListener('unload', this, false);
 		this._window.removeEventListener('TreeStyleTabAttached', this, false);
 		this._window.removeEventListener('TreeStyleTabParted', this, false);
+		this._window.removeEventListener('AppCommand', this, true);
 
 		this.browser.removeProgressListener(this);
 
@@ -222,6 +224,9 @@ BackToOwner.prototype = {
 					this.updateCommands();
 				return;
 
+			case 'AppCommand':
+				if (aEvent.command != 'Back')
+					return;
 			case 'command':
 				return this.onCommand(aEvent);
 		}
