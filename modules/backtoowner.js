@@ -18,10 +18,14 @@ function BackToOwner(aWindow)
 	this.init(aWindow);
 }
 BackToOwner.prototype = {
-	PREFROOT : 'extensions.backtoowner@piro.sakura.ne.jp.',
-	FAKE_CAN_GO_BACK : 'backtoowner-fake-can-go-back',
+	PREFROOT            : 'extensions.backtoowner@piro.sakura.ne.jp.',
+	FAKE_CAN_GO_BACK    : 'backtoowner-fake-can-go-back',
 	FAKE_CAN_GO_FORWARD : 'backtoowner-fake-can-go-forward',
-	LAST_FOCUSED : 'backtoowner-last-tocused',
+	LAST_FOCUSED        : 'backtoowner-last-tocused',
+	NEXT_IS_CLOSED      : 'backtoowner-next-is-clised',
+	UNDO_CLOSE_TAB      : 'undo',
+	OWNER               : 'backtoowner-owner',
+	ID                  : 'backtoowner-id',
 	
 /* Utilities */ 
 	
@@ -209,7 +213,7 @@ BackToOwner.prototype = {
 			aCommand == this.backOrDuplicateCommand) {
 			if (
 				!this.canGoBack &&
-				this.getOwner(this.browser.selectedTab)
+				this.getOwnerTab(this.browser.selectedTab)
 				) {
 				aCommand.setAttribute(this.FAKE_CAN_GO_BACK, true);
 				aCommand.removeAttribute('disabled');
@@ -221,7 +225,7 @@ BackToOwner.prototype = {
 		else {
 			if (
 				!this.canGoForward &&
-				this.getNext(this.browser.selectedTab)
+				this.getNextTab(this.browser.selectedTab)
 				) {
 				aCommand.setAttribute(this.FAKE_CAN_GO_FORWARD, true);
 				aCommand.removeAttribute('disabled');
@@ -240,7 +244,7 @@ BackToOwner.prototype = {
 		this.updateCommand(this.forwardOrDuplicateCommand);
 	},
 
-	getOwner : function(aTab)
+	getOwnerTab : function(aTab)
 	{
 		if (!aTab)
 			return null;
@@ -248,6 +252,23 @@ BackToOwner.prototype = {
 		var owner = this.treeStyleTab ?
 						this.treeStyleTab.getParentTab(aTab) :
 						aTab.owner || null ;
+
+		if (!owner) {
+			let id = this.getOwnerId(aTab);
+			if (id) {
+				WindowManager.getWindows('navigator:browser')
+					.some(function(aWindow) {
+						if (Array.slice(aWindow.gBrowser.mTabContainer.childNodes)
+								.some(function(aTab) {
+									if (this.getTabId(aTab) == id)
+										return owner = aTab;
+									return false;
+								}, this))
+							return true;
+						return false;
+					}, this);
+			}
+		}
 
 		if (!owner) {
 			let opener = aTab.linkedBrowser.contentWindow.opener;
@@ -270,10 +291,17 @@ BackToOwner.prototype = {
 		return owner;
 	},
 
-	getNext : function(aTab)
+	getNextTab : function(aTab)
 	{
 		if (!aTab)
 			return null;
+
+		try {
+			if (this.SessionStore.getTabValue(ownerTab, this.NEXT_IS_CLOSED) == 'true')
+				return this.UNDO_CLOSE_TAB;
+		}
+		catch(e) {
+		}
 
 		var children;
 		if (this.treeStyleTab) {
@@ -281,15 +309,23 @@ BackToOwner.prototype = {
 		}
 		else {
 			let opener = aTab.linkedBrowser.contentWindow;
+			let id = this.getTabId(aTab);
 			children = [];
 			WindowManager.getWindows('navigator:browser')
 				.forEach(function(aWindow) {
 					Array.slice(aWindow.gBrowser.mTabContainer.childNodes)
-						.forEach(function(aTab) {
-							if (aTab.linkedBrowser.contentWindow.opener == opener)
-								children.push(aTab);
-						});
-				});
+						.forEach(function(aCheckingTab) {
+							if (
+								aTab != aCheckingTab &&
+								(
+									aTab == aCheckingTab.owner ||
+									aCheckingTab.linkedBrowser.contentWindow.opener == opener ||
+									this.getOwnerId(aCheckingTab) == id
+								)
+								)
+								children.push(aCheckingTab);
+						}, this);
+				}, this);
 		}
 
 		var self = this;
@@ -310,6 +346,35 @@ BackToOwner.prototype = {
 		});
 
 		return children.length ? children[0] : null ;
+	},
+
+	getTabId : function(aTab)
+	{
+		if (!aTab)
+			return '';
+
+		var id;
+		try {
+			id = this.SessionStore.getTabValue(aTab, this.ID);
+			if (id)
+				return id;
+		}
+		catch(e) {
+		}
+		var id = (new Date()).getTime()+'-'+parseInt(Math.random() * 10000);
+		this.SessionStore.setTabValue(aTab, this.ID, id);
+		return id;
+	},
+
+	getOwnerId : function(aTab)
+	{
+		try {
+			if (aTab)
+				return this.SessionStore.getTabValue(aTab, this.OWNER);
+		}
+		catch(e) {
+		}
+		return '';
 	},
 
 	closeTab : function(aTab)
@@ -381,14 +446,16 @@ BackToOwner.prototype = {
 			return false;
 
 		var tab = this.browser.selectedTab;
-		var ownerTab = this.getOwner(tab);
+		var ownerTab = this.getOwnerTab(tab);
 		if (!ownerTab)
 			return false;
 
 		aEvent.stopPropagation();
 
-		if (ownerTab.ownerDocument == this._window.document)
+		if (ownerTab.ownerDocument == this._window.document) {
+			this.SessionStore.setTabValue(tab, this.OWNER, this.getTabId(ownerTab));
 			this.browser.selectedTab = ownerTab;
+		}
 
 		if (this.shouldCloseTab(tab)) {
 			if (this.shouldCloseWindow(tab)) {
@@ -396,6 +463,7 @@ BackToOwner.prototype = {
 				ownerTab.linkedBrowser.contentWindow.focus();
 			}
 			else {
+				this.SessionStore.setTabValue(ownerTab, this.NEXT_IS_CLOSED, 'true');
 				this.closeTab(tab);
 			}
 		}
@@ -421,14 +489,23 @@ BackToOwner.prototype = {
 			return false;
 
 		var tab = this.browser.selectedTab;
-		var nextTab = this.getNext(tab);
+		var nextTab = this.getNextTab(tab);
 		if (!nextTab)
 			return false;
 
 		aEvent.stopPropagation();
 
-		if (nextTab.ownerDocument == this._window.document)
-			this.browser.selectedTab = nextTab;
+		if (nextTab == this.UNDO_CLOSE_TAB) {
+			this.SessionStore.getTabValue(tab, this.NEXT_IS_CLOSED, '');
+			nextTab = this._window.undoCloseTab();
+		}
+		else {
+			if (nextTab.ownerDocument == this._window.document)
+				this.browser.selectedTab = nextTab;
+		}
+
+		if (nextTab && nextTab instanceof Ci.nsIDOMElement)
+			this.SessionStore.setTabValue(nextTab, this.OWNER, this.getTabId(tab));
 
 		return true;
 	},
