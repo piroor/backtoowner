@@ -20,6 +20,8 @@ function BackToOwner(aWindow)
 BackToOwner.prototype = {
 	PREFROOT : 'extensions.backtoowner@piro.sakura.ne.jp.',
 	FAKE_CAN_GO_BACK : 'backtoowner-fake-can-go-back',
+	FAKE_CAN_GO_FORWARD : 'backtoowner-fake-can-go-forward',
+	LAST_FOCUSED : 'backtoowner-last-tocused',
 	
 /* Utilities */ 
 	
@@ -39,6 +41,11 @@ BackToOwner.prototype = {
 				(this._Comparator = Cc['@mozilla.org/xpcom/version-comparator;1']
 									.getService(Ci.nsIVersionComparator));
 	},
+	get SessionStore() { 
+		return this._SessionStore ||
+				(this._SessionStore = Cc['@mozilla.org/browser/sessionstore;1']
+									.getService(Ci.nsISessionStore));
+	},
 
 	get browser() 
 	{
@@ -54,15 +61,27 @@ BackToOwner.prototype = {
 	{
 		return this.browser.canGoBack;
 	},
+	get canGoForward()
+	{
+		return this.browser.canGoForward;
+	},
 	
 	get backCommand() 
 	{
 		return this._window.document.getElementById('Browser:Back');
 	},
-
 	get backOrDuplicateCommand() 
 	{
 		return this._window.document.getElementById('Browser:BackOrBackDuplicate');
+	},
+
+	get forwardCommand() 
+	{
+		return this._window.document.getElementById('Browser:Forward');
+	},
+	get forwardOrDuplicateCommand() 
+	{
+		return this._window.document.getElementById('Browser:ForwardOrForwardDuplicate');
 	},
 
 	shouldCloseTab : function(aTab)
@@ -98,6 +117,7 @@ BackToOwner.prototype = {
 		this._window.addEventListener('unload', this, false);
 		this._window.addEventListener('TreeStyleTabAttached', this, false);
 		this._window.addEventListener('TreeStyleTabParted', this, false);
+		this._window.addEventListener('TabSelect', this, false);
 		this._window.addEventListener('AppCommand', this, true);
 
 		if (this.browser.addProgressListener.arity == 1) // Firefox 4.1 or later
@@ -107,6 +127,8 @@ BackToOwner.prototype = {
 
 		this.initCommand(this.backCommand);
 		this.initCommand(this.backOrDuplicateCommand);
+		this.initCommand(this.forwardCommand);
+		this.initCommand(this.forwardOrDuplicateCommand);
 
 		timer.setTimeout(function(aSelf) { aSelf.updateCommands(); }, 0, this);
 	},
@@ -116,12 +138,15 @@ BackToOwner.prototype = {
 		this._window.removeEventListener('unload', this, false);
 		this._window.removeEventListener('TreeStyleTabAttached', this, false);
 		this._window.removeEventListener('TreeStyleTabParted', this, false);
+		this._window.removeEventListener('TabSelect', this, false);
 		this._window.removeEventListener('AppCommand', this, true);
 
 		this.browser.removeProgressListener(this);
 
 		this.destroyCommand(this.backCommand);
 		this.destroyCommand(this.backOrDuplicateCommand);
+		this.destroyCommand(this.forwardCommand);
+		this.destroyCommand(this.forwardOrDuplicateCommand);
 
 		this._window = null;
 	},
@@ -133,7 +158,13 @@ BackToOwner.prototype = {
 		if (!aCommand) return;
 
 		if (this.isLegacy) { // Firefox 3.6 or older doesn't fire DOMXULCommand events on original command elements.
-			aCommand.setAttribute('oncommand', 'if (backToOwner.onCommand(event)) return; '+aCommand.getAttribute('oncommand'));
+			if (aCommand == this.backCommand ||
+				aCommand == this.backOrDuplicateCommand) {
+				aCommand.setAttribute('oncommand', 'if (backToOwner.onBackCommand(event)) return; '+aCommand.getAttribute('oncommand'));
+			}
+			else {
+				aCommand.setAttribute('oncommand', 'if (backToOwner.onForwardCommand(event)) return; '+aCommand.getAttribute('oncommand'));
+			}
 		}
 		else {
 			aCommand.addEventListener('command', this, true);
@@ -150,26 +181,54 @@ BackToOwner.prototype = {
 			aCommand.removeEventListener('command', this, true);
 		}
 
-		aCommand.removeAttribute(this.FAKE_CAN_GO_BACK);
+		if (aCommand == this.backCommand ||
+			aCommand == this.backOrDuplicateCommand) {
+			aCommand.removeAttribute(this.FAKE_CAN_GO_BACK);
 
-		if (this.canGoBack)
-			aCommand.removeAttribute('disabled');
-		else
-			aCommand.setAttribute('disabled', true);
+			if (this.canGoBack)
+				aCommand.removeAttribute('disabled');
+			else
+				aCommand.setAttribute('disabled', true);
+		}
+		else {
+			aCommand.removeAttribute(this.FAKE_CAN_GO_FORWARD);
+
+			if (this.canGoForward)
+				aCommand.removeAttribute('disabled');
+			else
+				aCommand.setAttribute('disabled', true);
+		}
 	},
 
 	updateCommand : function(aCommand)
 	{
-		if (
-			aCommand &&
-			!this.canGoBack &&
-			this.getOwner(this.browser.selectedTab)
-			) {
-			aCommand.setAttribute(this.FAKE_CAN_GO_BACK, true);
-			aCommand.removeAttribute('disabled');
+		if (!aCommand)
+			return;
+
+		if (aCommand == this.backCommand ||
+			aCommand == this.backOrDuplicateCommand) {
+			if (
+				!this.canGoBack &&
+				this.getOwner(this.browser.selectedTab)
+				) {
+				aCommand.setAttribute(this.FAKE_CAN_GO_BACK, true);
+				aCommand.removeAttribute('disabled');
+			}
+			else {
+				aCommand.removeAttribute(this.FAKE_CAN_GO_BACK);
+			}
 		}
 		else {
-			aCommand.removeAttribute(this.FAKE_CAN_GO_BACK);
+			if (
+				!this.canGoForward &&
+				this.getNext(this.browser.selectedTab)
+				) {
+				aCommand.setAttribute(this.FAKE_CAN_GO_FORWARD, true);
+				aCommand.removeAttribute('disabled');
+			}
+			else {
+				aCommand.removeAttribute(this.FAKE_CAN_GO_FORWARD);
+			}
 		}
 	},
 
@@ -177,6 +236,8 @@ BackToOwner.prototype = {
 	{
 		this.updateCommand(this.backCommand);
 		this.updateCommand(this.backOrDuplicateCommand);
+		this.updateCommand(this.forwardCommand);
+		this.updateCommand(this.forwardOrDuplicateCommand);
 	},
 
 	getOwner : function(aTab)
@@ -209,6 +270,48 @@ BackToOwner.prototype = {
 		return owner;
 	},
 
+	getNext : function(aTab)
+	{
+		if (!aTab)
+			return null;
+
+		var children;
+		if (this.treeStyleTab) {
+			children = this.treeStyleTab.getChildTabs(aTab);
+		}
+		else {
+			let opener = aTab.linkedBrowser.contentWindow;
+			children = [];
+			WindowManager.getWindows('navigator:browser')
+				.forEach(function(aWindow) {
+					Array.slice(aWindow.gBrowser.mTabContainer.childNodes)
+						.forEach(function(aTab) {
+							if (aTab.linkedBrowser.contentWindow.opener == opener)
+								children.push(aTab);
+						});
+				});
+		}
+
+		var self = this;
+		children.sort(function(aA, aB) {
+			var a = 0;
+			var b = 0;
+			try {
+				a = self.SessionStore.getTabValue(aA, self.LAST_FOCUSED);
+			}
+			catch(e) {
+			}
+			try {
+				b = self.SessionStore.getTabValue(aB, self.LAST_FOCUSED);
+			}
+			catch(e) {
+			}
+			return b - a;
+		});
+
+		return children.length ? children[0] : null ;
+	},
+
 	closeTab : function(aTab)
 	{
 		if (
@@ -237,15 +340,30 @@ BackToOwner.prototype = {
 					this.updateCommands();
 				return;
 
+			case 'TabSelect':
+				this.SessionStore.setTabValue(aEvent.originalTarget, this.LAST_FOCUSED, (new Date()).getTime());
+				return;
+
 			case 'AppCommand':
-				if (aEvent.command != 'Back')
-					return;
+				switch (aEvent.command)
+				{
+					case 'Back':
+						return this.onBackCommand(aEvent);
+					case 'Forward':
+						return this.onForwardCommand(aEvent);
+				}
+				return;
 			case 'command':
-				return this.onCommand(aEvent);
+				if (/back/i.test(aEvent.target.id || ''))
+					return this.onBackCommand(aEvent);
+				else if (/forward/i.test(aEvent.target.id || ''))
+					return this.onForwardCommand(aEvent);
+				else
+					return;
 		}
 	},
 
-	onCommand : function(aEvent)
+	onBackCommand : function(aEvent)
 	{
 		if (
 			this.canGoBack ||
@@ -263,24 +381,54 @@ BackToOwner.prototype = {
 			return false;
 
 		var tab = this.browser.selectedTab;
-		var owner = this.getOwner(tab);
-		if (!owner)
+		var ownerTab = this.getOwner(tab);
+		if (!ownerTab)
 			return false;
 
 		aEvent.stopPropagation();
 
-		if (owner.ownerDocument == this._window.document)
-			this.browser.selectedTab = owner;
+		if (ownerTab.ownerDocument == this._window.document)
+			this.browser.selectedTab = ownerTab;
 
 		if (this.shouldCloseTab(tab)) {
 			if (this.shouldCloseWindow(tab)) {
 				timer.setTimeout(function(aSelf) { aSelf._window.close(); }, 0, this);
-				owner.linkedBrowser.contentWindow.focus();
+				ownerTab.linkedBrowser.contentWindow.focus();
 			}
 			else {
 				this.closeTab(tab);
 			}
 		}
+
+		return true;
+	},
+
+	onForwardCommand : function(aEvent)
+	{
+		if (
+			this.canGoForward ||
+			(
+				(
+					!this.forwardCommand ||
+					this.forwardCommand.getAttribute(this.FAKE_CAN_GO_FORWARD) != 'true'
+				) &&
+				(
+					!this.forwardOrDuplicateCommand ||
+					this.forwardOrDuplicateCommand.getAttribute(this.FAKE_CAN_GO_FORWARD) != 'true'
+				)
+			)
+			)
+			return false;
+
+		var tab = this.browser.selectedTab;
+		var nextTab = this.getNext(tab);
+		if (!nextTab)
+			return false;
+
+		aEvent.stopPropagation();
+
+		if (nextTab.ownerDocument == this._window.document)
+			this.browser.selectedTab = nextTab;
 
 		return true;
 	},
