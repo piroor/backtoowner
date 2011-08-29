@@ -521,7 +521,14 @@ BackToOwner.prototype = {
 		// do with delay, because...
 		//  * Firefox sometimes disables commands after this method is called.
 		//  * Firefox changes the state of "canGoBack" before "command" command is fired, if it is in-page link.
-		timer.setTimeout(function(aSelf) { aSelf.updateCommands(); }, 0, this);
+		timer.setTimeout(function(aSelf) {
+			aSelf.updateCommands();
+
+			var tab = aSelf.browser.selectedTab;
+			var ownerTab = aSelf.getOwnerTab(tab);
+			if (ownerTab && ownerTab.ownerDocument == aSelf._window.document)
+				aSelf.SessionStore.setTabValue(tab, aSelf.OWNER, aSelf.getTabId(ownerTab));
+		}, 0, this);
 	},
 
 /* nsIWebProgressListener2 */
