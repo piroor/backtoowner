@@ -496,7 +496,7 @@ BackToOwner.prototype = {
 		aEvent.stopPropagation();
 
 		if (nextTab == this.UNDO_CLOSE_TAB) {
-			this.SessionStore.getTabValue(tab, this.NEXT_IS_CLOSED, '');
+			this.SessionStore.setTabValue(tab, this.NEXT_IS_CLOSED, '');
 			nextTab = this._window.undoCloseTab();
 		}
 		else {
