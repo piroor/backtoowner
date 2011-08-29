@@ -121,6 +121,7 @@ BackToOwner.prototype = {
 		this._window.addEventListener('unload', this, false);
 		this._window.addEventListener('TreeStyleTabAttached', this, false);
 		this._window.addEventListener('TreeStyleTabParted', this, false);
+		this._window.addEventListener('TabOpen', this, false);
 		this._window.addEventListener('TabSelect', this, false);
 		this._window.addEventListener('AppCommand', this, true);
 
@@ -142,6 +143,7 @@ BackToOwner.prototype = {
 		this._window.removeEventListener('unload', this, false);
 		this._window.removeEventListener('TreeStyleTabAttached', this, false);
 		this._window.removeEventListener('TreeStyleTabParted', this, false);
+		this._window.removeEventListener('TabOpen', this, false);
 		this._window.removeEventListener('TabSelect', this, false);
 		this._window.removeEventListener('AppCommand', this, true);
 
@@ -271,6 +273,16 @@ BackToOwner.prototype = {
 		}
 
 		if (!owner) {
+			let lastRelated = this.browser._lastRelatedTab;
+			if (
+				prefs.getPref('browser.tabs.insertRelatedAfterCurrent') &&
+				(!lastRelated || lastRelated._tPos <= aTab._tPos) &&
+				aTab._tPos > this.browser.selectedTab._tPos
+				)
+				owner = this.browser.selectedTab;
+		}
+
+		if (!owner) {
 			let opener = aTab.linkedBrowser.contentWindow.opener;
 			if (opener) {
 				opener = opener.top || opener;
@@ -297,7 +309,7 @@ BackToOwner.prototype = {
 			return null;
 
 		try {
-			if (this.SessionStore.getTabValue(ownerTab, this.NEXT_IS_CLOSED) == 'true')
+			if (this.SessionStore.getTabValue(aTab, this.NEXT_IS_CLOSED) == 'true')
 				return this.UNDO_CLOSE_TAB;
 		}
 		catch(e) {
@@ -377,6 +389,14 @@ BackToOwner.prototype = {
 		return '';
 	},
 
+	setOwnerTab : function(aTab, aOwnerTab)
+	{
+		var tab = this.browser.selectedTab;
+		var ownerTab = aOwnerTab || this.getOwnerTab(aTab);
+		if (ownerTab && ownerTab.ownerDocument == this._window.document)
+			this.SessionStore.setTabValue(aTab, this.OWNER, this.getTabId(ownerTab));
+	},
+
 	closeTab : function(aTab)
 	{
 		if (
@@ -405,9 +425,11 @@ BackToOwner.prototype = {
 					this.updateCommands();
 				return;
 
+			case 'TabOpen':
+				return this.setOwnerTab(aEvent.originalTarget);
+
 			case 'TabSelect':
-				this.SessionStore.setTabValue(aEvent.originalTarget, this.LAST_FOCUSED, (new Date()).getTime());
-				return;
+				return this.SessionStore.setTabValue(aEvent.originalTarget, this.LAST_FOCUSED, (new Date()).getTime());
 
 			case 'AppCommand':
 				switch (aEvent.command)
@@ -453,7 +475,7 @@ BackToOwner.prototype = {
 		aEvent.stopPropagation();
 
 		if (ownerTab.ownerDocument == this._window.document) {
-			this.SessionStore.setTabValue(tab, this.OWNER, this.getTabId(ownerTab));
+			this.setOwnerTab(tab, ownerTab);
 			this.browser.selectedTab = ownerTab;
 		}
 
@@ -505,7 +527,7 @@ BackToOwner.prototype = {
 		}
 
 		if (nextTab && nextTab instanceof Ci.nsIDOMElement)
-			this.SessionStore.setTabValue(nextTab, this.OWNER, this.getTabId(tab));
+			this.setOwnerTab(nextTab, tab);
 
 		return true;
 	},
@@ -523,11 +545,7 @@ BackToOwner.prototype = {
 		//  * Firefox changes the state of "canGoBack" before "command" command is fired, if it is in-page link.
 		timer.setTimeout(function(aSelf) {
 			aSelf.updateCommands();
-
-			var tab = aSelf.browser.selectedTab;
-			var ownerTab = aSelf.getOwnerTab(tab);
-			if (ownerTab && ownerTab.ownerDocument == aSelf._window.document)
-				aSelf.SessionStore.setTabValue(tab, aSelf.OWNER, aSelf.getTabId(ownerTab));
+			aSelf.setOwnerTab(aSelf.browser.selectedTab);
 		}, 0, this);
 	},
 
