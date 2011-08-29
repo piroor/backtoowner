@@ -19,6 +19,7 @@ function BackToOwner(aWindow)
 }
 BackToOwner.prototype = {
 	PREFROOT : 'extensions.backtoowner@piro.sakura.ne.jp.',
+	FAKE_CAN_GO_BACK : 'backtoowner-fake-can-go-back',
 	
 /* Utilities */ 
 	
@@ -47,6 +48,11 @@ BackToOwner.prototype = {
 	get treeStyleTab() 
 	{
 		return 'TreeStyleTabService' in this._window ? this._window.TreeStyleTabService : null ;
+	},
+
+	get canGoBack()
+	{
+		return this.browser.canGoBack;
 	},
 	
 	get backCommand() 
@@ -144,7 +150,9 @@ BackToOwner.prototype = {
 			aCommand.removeEventListener('command', this, true);
 		}
 
-		if (this.browser.canGoBack)
+		aCommand.removeAttribute(this.FAKE_CAN_GO_BACK);
+
+		if (this.canGoBack)
 			aCommand.removeAttribute('disabled');
 		else
 			aCommand.setAttribute('disabled', true);
@@ -154,10 +162,15 @@ BackToOwner.prototype = {
 	{
 		if (
 			aCommand &&
-			!this.browser.canGoBack &&
+			!this.canGoBack &&
 			this.getOwner(this.browser.selectedTab)
-			)
+			) {
+			aCommand.setAttribute(this.FAKE_CAN_GO_BACK, true);
 			aCommand.removeAttribute('disabled');
+		}
+		else {
+			aCommand.removeAttribute(this.FAKE_CAN_GO_BACK);
+		}
 	},
 
 	updateCommands : function()
@@ -234,7 +247,19 @@ BackToOwner.prototype = {
 
 	onCommand : function(aEvent)
 	{
-		if (this.browser.canGoBack)
+		if (
+			this.canGoBack ||
+			(
+				(
+					!this.backCommand ||
+					this.backCommand.getAttribute(this.FAKE_CAN_GO_BACK) != 'true'
+				) &&
+				(
+					!this.backOrDuplicateCommand ||
+					this.backOrDuplicateCommand.getAttribute(this.FAKE_CAN_GO_BACK) != 'true'
+				)
+			)
+			)
 			return false;
 
 		var tab = this.browser.selectedTab;
@@ -267,8 +292,10 @@ BackToOwner.prototype = {
 	onSecurityChange : function() {},
 	onLocationChange : function(aWebProgress, aRequest, aLocation)
 	{
-		this.updateCommands();
-		// do it again with delay, because Firefox sometimes disables commands after this method is called.
+		// this.updateCommands();
+		// do with delay, because...
+		//  * Firefox sometimes disables commands after this method is called.
+		//  * Firefox changes the state of "canGoBack" before "command" command is fired, if it is in-page link.
 		timer.setTimeout(function(aSelf) { aSelf.updateCommands(); }, 0, this);
 	},
 
