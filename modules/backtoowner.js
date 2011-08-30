@@ -122,6 +122,7 @@ BackToOwner.prototype = {
 		this._window.addEventListener('TreeStyleTabAttached', this, false);
 		this._window.addEventListener('TreeStyleTabParted', this, false);
 		this._window.addEventListener('TabOpen', this, false);
+		this._window.addEventListener('TabClose', this, false);
 		this._window.addEventListener('TabSelect', this, false);
 		this._window.addEventListener('AppCommand', this, true);
 
@@ -144,6 +145,7 @@ BackToOwner.prototype = {
 		this._window.removeEventListener('TreeStyleTabAttached', this, false);
 		this._window.removeEventListener('TreeStyleTabParted', this, false);
 		this._window.removeEventListener('TabOpen', this, false);
+		this._window.removeEventListener('TabClose', this, false);
 		this._window.removeEventListener('TabSelect', this, false);
 		this._window.removeEventListener('AppCommand', this, true);
 
@@ -206,7 +208,7 @@ BackToOwner.prototype = {
 		}
 	},
 
-	updateCommand : function(aCommand)
+	updateCommand : function(aCommand, aForceUpdate)
 	{
 		if (!aCommand)
 			return;
@@ -222,6 +224,12 @@ BackToOwner.prototype = {
 			}
 			else {
 				aCommand.removeAttribute(this.FAKE_CAN_GO_BACK);
+				if (aForceUpdate) {
+					if (!this.canGoBack)
+						aCommand.setAttribute('disabled', true);
+					else
+						aCommand.removeAttribute('disabled');
+				}
 			}
 		}
 		else {
@@ -234,16 +242,22 @@ BackToOwner.prototype = {
 			}
 			else {
 				aCommand.removeAttribute(this.FAKE_CAN_GO_FORWARD);
+				if (aForceUpdate) {
+					if (!this.canGoForward)
+						aCommand.setAttribute('disabled', true);
+					else
+						aCommand.removeAttribute('disabled');
+				}
 			}
 		}
 	},
 
-	updateCommands : function()
+	updateCommands : function(aForceUpdate)
 	{
-		this.updateCommand(this.backCommand);
-		this.updateCommand(this.backOrDuplicateCommand);
-		this.updateCommand(this.forwardCommand);
-		this.updateCommand(this.forwardOrDuplicateCommand);
+		this.updateCommand(this.backCommand, aForceUpdate);
+		this.updateCommand(this.backOrDuplicateCommand, aForceUpdate);
+		this.updateCommand(this.forwardCommand, aForceUpdate);
+		this.updateCommand(this.forwardOrDuplicateCommand, aForceUpdate);
 	},
 
 	getOwnerTab : function(aTab)
@@ -255,17 +269,23 @@ BackToOwner.prototype = {
 						this.treeStyleTab.getParentTab(aTab) :
 						aTab.owner || null ;
 
+		var removingTabs = this.browser._removingTabs || [];
+		if (removingTabs.indexOf(owner) > -1)
+			owner = null;
+
 		if (!owner) {
 			let id = this.getOwnerId(aTab);
 			if (id) {
 				WindowManager.getWindows('navigator:browser')
 					.some(function(aWindow) {
-						if (Array.slice(aWindow.gBrowser.mTabContainer.childNodes)
-								.some(function(aTab) {
-									if (this.getTabId(aTab) == id)
-										return owner = aTab;
-									return false;
-								}, this))
+						var tabs = Array.slice(aWindow.gBrowser.mTabContainer.childNodes);
+						var removingTabs = aWindow.gBrowser._removingTabs || [];
+						if (tabs.some(function(aTab) {
+								if (this.getTabId(aTab) == id &&
+									removingTabs.indexOf(aTab) < 0)
+									return owner = aTab;
+								return false;
+							}, this))
 							return true;
 						return false;
 					}, this);
@@ -275,8 +295,9 @@ BackToOwner.prototype = {
 		if (!owner) {
 			let lastRelated = this.browser._lastRelatedTab;
 			if (
-				prefs.getPref('browser.tabs.insertRelatedAfterCurrent') &&
-				(!lastRelated || lastRelated._tPos <= aTab._tPos) &&
+				removingTabs.indexOf(aTab) < 0 &&
+				lastRelated &&
+				lastRelated._tPos <= aTab._tPos &&
 				aTab._tPos > this.browser.selectedTab._tPos
 				)
 				owner = this.browser.selectedTab;
@@ -288,12 +309,15 @@ BackToOwner.prototype = {
 				opener = opener.top || opener;
 				WindowManager.getWindows('navigator:browser')
 					.some(function(aWindow) {
-						if (Array.slice(aWindow.gBrowser.mTabContainer.childNodes)
-								.some(function(aTab) {
-									if (aTab.linkedBrowser.contentWindow == opener)
-										return owner = aTab;
-									return false;
-								}))
+						var tabs = Array.slice(aWindow.gBrowser.mTabContainer.childNodes);
+						var removingTabs = aWindow.gBrowser._removingTabs || [];
+						if (tabs
+							.some(function(aTab) {
+								if (aTab.linkedBrowser.contentWindow == opener &&
+									removingTabs.indexOf(aTab) < 0)
+									return owner = aTab;
+								return false;
+							}))
 							return true;
 						return false;
 					});
@@ -325,18 +349,20 @@ BackToOwner.prototype = {
 			children = [];
 			WindowManager.getWindows('navigator:browser')
 				.forEach(function(aWindow) {
-					Array.slice(aWindow.gBrowser.mTabContainer.childNodes)
-						.forEach(function(aCheckingTab) {
-							if (
-								aTab != aCheckingTab &&
-								(
-									aTab == aCheckingTab.owner ||
-									aCheckingTab.linkedBrowser.contentWindow.opener == opener ||
-									this.getOwnerId(aCheckingTab) == id
-								)
-								)
-								children.push(aCheckingTab);
-						}, this);
+					var tabs = Array.slice(aWindow.gBrowser.mTabContainer.childNodes);
+					var removingTabs = aWindow.gBrowser._removingTabs;
+					tabs.forEach(function(aCheckingTab) {
+						if (
+							aTab != aCheckingTab &&
+							(
+								aTab == aCheckingTab.owner ||
+								aCheckingTab.linkedBrowser.contentWindow.opener == opener ||
+								this.getOwnerId(aCheckingTab) == id
+							) &&
+							removingTabs.indexOf(aCheckingTab) < 0
+							)
+							children.push(aCheckingTab);
+					}, this);
 				}, this);
 		}
 
@@ -391,6 +417,9 @@ BackToOwner.prototype = {
 
 	setOwnerTab : function(aTab, aOwnerTab)
 	{
+		if (!aTab || !aTab.parentNode)
+			return;
+
 		var tab = this.browser.selectedTab;
 		var ownerTab = aOwnerTab || this.getOwnerTab(aTab);
 		if (ownerTab && ownerTab.ownerDocument == this._window.document)
@@ -426,7 +455,15 @@ BackToOwner.prototype = {
 				return;
 
 			case 'TabOpen':
-				return this.setOwnerTab(aEvent.originalTarget);
+				timer.setTimeout(function(aSelf, aTab) {
+					// we have to do this with delay because tab's relations are updated
+					// after the TabOpen event is fired.
+					aSelf.setOwnerTab(aTab);
+				}, 0, this, aEvent.originalTarget);
+				return;
+
+			case 'TabClose':
+				return this.updateCommands(aEvent.originalTarget != this.browser.selectedTab);
 
 			case 'TabSelect':
 				return this.SessionStore.setTabValue(aEvent.originalTarget, this.LAST_FOCUSED, (new Date()).getTime());
