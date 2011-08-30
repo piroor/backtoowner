@@ -126,7 +126,7 @@ BackToOwner.prototype = {
 		this._window.addEventListener('TabSelect', this, false);
 		this._window.addEventListener('AppCommand', this, true);
 
-		if (this.browser.addProgressListener.arity == 1) // Firefox 4.1 or later
+		if (this.browser.addProgressListener.length == 1) // Firefox 4.1 or later
 			this.browser.addProgressListener(this);
 		else
 			this.browser.addProgressListener(this, Ci.nsIWebProgress.NOTIFY_ALL);
