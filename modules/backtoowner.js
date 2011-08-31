@@ -198,9 +198,9 @@ BackToOwner.prototype = {
 		this.initCommand(this.forwardCommand);
 		this.initCommand(this.forwardOrDuplicateCommand);
 
-		this.backForwardMenuBackup = this.document.createElement('menupopup');
-		this.document.getElementById('mainPopupSet').appendChild(this.backForwardMenuBackup);
-		this.initPopup(this.backForwardMenuBackup);
+		this.backForwardMenuFake = this.document.createElement('menupopup');
+		this.document.getElementById('mainPopupSet').appendChild(this.backForwardMenuFake);
+		this.initPopup(this.backForwardMenuFake);
 		this.initPopup(this.backForwardMenu);
 		this.initPopup(this.backForwardMenuDropmarker);
 
@@ -224,9 +224,9 @@ BackToOwner.prototype = {
 		this.destroyCommand(this.forwardCommand);
 		this.destroyCommand(this.forwardOrDuplicateCommand);
 
-		this.destroyPopup(this.backForwardMenuBackup);
-		this.backForwardMenuBackup.parentNode.removeChild(this.backForwardMenuBackup);
-		this.backForwardMenuBackup = null;
+		this.destroyPopup(this.backForwardMenuFake);
+		this.backForwardMenuFake.parentNode.removeChild(this.backForwardMenuFake);
+		this.backForwardMenuFake = null;
 		this.destroyPopup(this.backForwardMenu);
 		this.destroyPopup(this.backForwardMenuDropmarker);
 
@@ -360,6 +360,17 @@ BackToOwner.prototype = {
 
 		this.removeTabItems(aPopup);
 
+		// for backForwardMenuFake
+		if (!aPopup.hasChildNodes()) {
+			let item = this.document.createElement('menuitem');
+			item.setAttribute('label', this.selectedTab.label);
+			item.setAttribute('type', 'radio');
+			item.setAttribute('checked', 'true');
+			item.setAttribute('class', 'unified-nav-current '+this.EXTRA_MENU_ITEM);
+			item.setAttribute('tooltiptext', this._window.gNavigatorBundle.getString('tabHistory.current'));
+			aPopup.appendChild(item);
+		}
+
 		var ownerTab = this.getOwnerTab(this.selectedTab);
 		if (ownerTab) {
 			let fragment = this.document.createDocumentFragment();
@@ -367,6 +378,7 @@ BackToOwner.prototype = {
 			item.setAttribute('label', ownerTab.label);
 			item.setAttribute('class', 'unified-nav-back menuitem-iconic menuitem-with-favicon '+this.EXTRA_MENU_ITEM);
 			item.setAttribute('oncommand', 'backToOwner.onBackCommand(event, true); this.parentNode.hidePopup()');
+			item.setAttribute('tooltiptext', this._window.gNavigatorBundle.getString('tabHistory.goBack'));
 			if (aPopup.hasChildNodes()) {
 				let separator = fragment.insertBefore(this.document.createElement('menuseparator'), item);
 				separator.setAttribute('class', this.EXTRA_MENU_ITEM);
@@ -381,7 +393,8 @@ BackToOwner.prototype = {
 			item.setAttribute('label', nextTab.label);
 			item.setAttribute('class', 'unified-nav-forward menuitem-iconic menuitem-with-favicon '+this.EXTRA_MENU_ITEM);
 			item.setAttribute('oncommand', 'backToOwner.onForwardCommand(event, true); this.parentNode.hidePopup()');
-			if (aPopup.hasChildNodes() && aPopup.firstChild.className.indexOf(this.EXTRA_MENU_ITEM) < 0) {
+			item.setAttribute('tooltiptext', this._window.gNavigatorBundle.getString('tabHistory.goForward'));
+			if (aPopup.hasChildNodes()) {
 				let separator = fragment.appendChild(this.document.createElement('menuseparator'));
 				separator.setAttribute('class', this.EXTRA_MENU_ITEM);
 			}
@@ -610,9 +623,9 @@ BackToOwner.prototype = {
 			case 'popupshowing':
 				if (aEvent.target == aEvent.currentTarget) {
 					let popup = aEvent.target;
-					if (popup != this.backForwardMenuBackup &&
+					if (popup != this.backForwardMenuFake &&
 						this.selectedTab.linkedBrowser.sessionHistory.count <= 1) {
-						// the original popup menu is canceled by Firefox, so reopen backup popup.
+						// the original popup menu is canceled by Firefox, so reopen fake popup.
 						let anchorNode = popup.triggerNode || this.document.getElementById('back-button');
 						let position = 'after_pointer';
 						let isContext = true;
@@ -621,7 +634,8 @@ BackToOwner.prototype = {
 							position = 'after_start';
 							isContext = false;
 						}
-						this.backForwardMenuBackup.openPopup(anchorNode, position, 0, 0, isContext, false, aEvent);
+						this.backForwardMenuFake.openPopup(anchorNode, position, 0, 0, isContext, false, aEvent);
+						aEvent.preventDefault();
 					}
 					else {
 						this.insertTabItems(popup);
