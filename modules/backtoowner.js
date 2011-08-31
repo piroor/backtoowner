@@ -62,6 +62,7 @@ BackToOwner.prototype = {
 	OWNER               : 'backtoowner-owner',
 	ID                  : 'backtoowner-id',
 	EXTRA_MENU_ITEM     : 'backtoowner-menu-item',
+	HISTORY_POPUP       : 'backtoowner-history-popup',
 	
 /* Utilities */ 
 	
@@ -196,6 +197,10 @@ BackToOwner.prototype = {
 		this.initCommand(this.backOrDuplicateCommand);
 		this.initCommand(this.forwardCommand);
 		this.initCommand(this.forwardOrDuplicateCommand);
+
+		this.backForwardMenuBackup = this.document.createElement('menupopup');
+		this.document.getElementById('mainPopupSet').appendChild(this.backForwardMenuBackup);
+		this.initPopup(this.backForwardMenuBackup);
 		this.initPopup(this.backForwardMenu);
 		this.initPopup(this.backForwardMenuDropmarker);
 
@@ -218,6 +223,10 @@ BackToOwner.prototype = {
 		this.destroyCommand(this.backOrDuplicateCommand);
 		this.destroyCommand(this.forwardCommand);
 		this.destroyCommand(this.forwardOrDuplicateCommand);
+
+		this.destroyPopup(this.backForwardMenuBackup);
+		this.backForwardMenuBackup.parentNode.removeChild(this.backForwardMenuBackup);
+		this.backForwardMenuBackup = null;
 		this.destroyPopup(this.backForwardMenu);
 		this.destroyPopup(this.backForwardMenuDropmarker);
 
@@ -599,8 +608,25 @@ BackToOwner.prototype = {
 				return this.SessionStore.setTabValue(aEvent.originalTarget, this.LAST_FOCUSED, (new Date()).getTime());
 
 			case 'popupshowing':
-				if (aEvent.target == aEvent.currentTarget)
-					this.insertTabItems(aEvent.target);
+				if (aEvent.target == aEvent.currentTarget) {
+					let popup = aEvent.target;
+					if (popup != this.backForwardMenuBackup &&
+						this.selectedTab.linkedBrowser.sessionHistory.count <= 1) {
+						// the original popup menu is canceled by Firefox, so reopen backup popup.
+						let anchorNode = popup.triggerNode || this.document.getElementById('back-button');
+						let position = 'after_pointer';
+						let isContext = true;
+						if (popup == this.backForwardMenuDropmarker) {
+							anchorNode = popup.parentNode;
+							position = 'after_start';
+							isContext = false;
+						}
+						this.backForwardMenuBackup.openPopup(anchorNode, position, 0, 0, isContext, false, aEvent);
+					}
+					else {
+						this.insertTabItems(popup);
+					}
+				}
 				return;
 
 			case 'popuphiding':
