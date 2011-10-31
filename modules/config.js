@@ -58,6 +58,9 @@ config.register('about:blank?backtoowner-config', <>
 			<preference id="shouldCloseTree"
 				name={PREFROOT+'shouldCloseTree'}
 				type="bool"/>
+			<preference id="shouldCloseWindow"
+				name={PREFROOT+'shouldCloseWindow'}
+				type="bool"/>
 		</preferences>
 
 
@@ -70,6 +73,9 @@ config.register('about:blank?backtoowner-config', <>
 				label={bundle.getString('shouldCloseTree')}
 				preference="shouldCloseTree"/>
 		</hbox>
+		<checkbox id="shouldCloseWindow-checkbox"
+			label={bundle.getString('shouldCloseWindow')}
+			preference="shouldCloseWindow"/>
 
 	</prefpane>
 

@@ -38,3 +38,4 @@ title=親のタブに戻る設定
 general=全般
 shouldCloseTab=戻る時にタブを閉じる
 shouldCloseTree=ツリー型タブがある場合はツリー全体を閉じる
+shouldCloseWindow=戻る先が別のウィンドウのタブだった場合にウィンドウを閉じる
