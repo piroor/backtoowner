@@ -38,4 +38,4 @@ title=Back to Owner Tab Configuration
 general=General
 shouldCloseTab=Close tab on go back
 shouldCloseTree=Close whole tree if Tree Style Tab is installed
-shouldCloseWindow=Close window when the owner tab is in another window
+shouldCloseWindow=Close the current window if the current tab is the last one and the owner is in another window
