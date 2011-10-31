@@ -42,7 +42,7 @@ function handleWindow(aWindow)
 {
 	if (aWindow.document.documentElement.getAttribute('windowtype') == TYPE_BROWSER &&
 		!aWindow.backToOwner)
-		aWindow.backToOwner = new BackToOwner(aWindow);
+		new BackToOwner(aWindow);
 }
 
 WindowManager.getWindows(TYPE_BROWSER).forEach(handleWindow);
@@ -53,7 +53,6 @@ function shutdown()
 	WindowManager.getWindows(TYPE_BROWSER).forEach(function(aWindow) {
 		if (aWindow.backToOwner) {
 			aWindow.backToOwner.destroy();
-			delete aWindow.backToOwner;
 		}
 	});
 

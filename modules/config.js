@@ -39,6 +39,7 @@ const PREFROOT = 'extensions.backtoowner@piro.sakura.ne.jp.';
 
 config.setDefault(PREFROOT+'shouldCloseTab', false);
 config.setDefault(PREFROOT+'shouldCloseTree', false);
+config.setDefault(PREFROOT+'shouldCloseWindow', true);
 
 var bundle = require('lib/locale')
 				.get(resolve('locale/config.properties'));

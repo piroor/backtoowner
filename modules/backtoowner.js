@@ -51,18 +51,21 @@ var EXPORTED_SYMBOLS = ['BackToOwner'];
 function BackToOwner(aWindow) 
 {
 	this.init(aWindow);
+	aWindow.backToOwner = this;
 }
 BackToOwner.prototype = {
-	PREFROOT            : 'extensions.backtoowner@piro.sakura.ne.jp.',
-	FAKE_CAN_GO_BACK    : 'backtoowner-fake-can-go-back',
-	FAKE_CAN_GO_FORWARD : 'backtoowner-fake-can-go-forward',
-	LAST_FOCUSED        : 'backtoowner-last-tocused',
-	NEXT_IS_CLOSED      : 'backtoowner-next-is-clised',
-	UNDO_CLOSE_TAB      : 'undo',
-	OWNER               : 'backtoowner-owner',
-	ID                  : 'backtoowner-id',
-	EXTRA_MENU_ITEM     : 'backtoowner-menu-item',
-	HISTORY_POPUP       : 'backtoowner-history-popup',
+	PREFROOT              : 'extensions.backtoowner@piro.sakura.ne.jp.',
+	FAKE_CAN_GO_BACK      : 'backtoowner-fake-can-go-back',
+	FAKE_CAN_GO_FORWARD   : 'backtoowner-fake-can-go-forward',
+	LAST_FOCUSED          : 'backtoowner-last-tocused',
+	NEXT_IS_CLOSED        : 'backtoowner-next-is-closed',
+	NEXT_IS_CLOSED_WINDOW : 'backtoowner-next-is-closed-window',
+	UNDO_CLOSE_TAB        : 'undo-close-tab',
+	UNDO_CLOSE_WINDOW     : 'undo-close-window',
+	OWNER                 : 'backtoowner-owner',
+	ID                    : 'backtoowner-id',
+	EXTRA_MENU_ITEM       : 'backtoowner-menu-item',
+	HISTORY_POPUP         : 'backtoowner-history-popup',
 	
 /* Utilities */ 
 	
@@ -103,7 +106,24 @@ BackToOwner.prototype = {
 	},
 	set selectedTab(aTab)
 	{
-		return this.browser.selectedTab = aTab;
+		if (!aTab)
+			return aTab;
+
+		var doc = aTab.ownerDocument;
+		if (this.browser.ownerDocument == doc)
+			return this.browser.selectedTab = aTab;
+
+		WindowManager.getWindows('navigator:browser')
+			.some(function(aWindow) {
+				if (aWindow.document != doc)
+					return false;
+
+				aWindow.gBrowser.selectedTab = aTab;
+				aTab.linkedBrowser.contentWindow.focus();
+				return true;
+			}, this);
+
+		return aTab;
 	},
 
 	get treeStyleTab() 
@@ -168,8 +188,7 @@ BackToOwner.prototype = {
 			(this.treeStyleTab ?
 				(this.treeStyleTab.getDescendantTabs(aTab).length + 1 == b.browsers.length) :
 				(b.browsers.length == 1 && b.selectedTab == aTab)
-				) &&
-			prefs.getPref('browser.tabs.closeWindowWithLastTab')
+				)
 		);
 	},
   
@@ -204,11 +223,19 @@ BackToOwner.prototype = {
 		this.initPopup(this.backForwardMenu);
 		this.initPopup(this.backForwardMenuDropmarker);
 
-		timer.setTimeout(function(aSelf) { aSelf.updateCommands(); }, 0, this);
+		timer.setTimeout(function(aSelf) {
+			aSelf.updateCommands();
+		}, 0, this);
 	},
  
 	destroy : function() 
 	{
+		var ownerTab = this.getOwnerTab(this.selectedTab);
+		if (ownerTab && ownerTab.ownerDocument != this.document) {
+			this.SessionStore.setTabValue(ownerTab, this.NEXT_IS_CLOSED, 'true');
+			this.SessionStore.setTabValue(ownerTab, this.NEXT_IS_CLOSED_WINDOW, 'true');
+		}
+
 		this._window.removeEventListener('unload', this, false);
 		this._window.removeEventListener('TreeStyleTabAttached', this, false);
 		this._window.removeEventListener('TreeStyleTabParted', this, false);
@@ -230,6 +257,7 @@ BackToOwner.prototype = {
 		this.destroyPopup(this.backForwardMenu);
 		this.destroyPopup(this.backForwardMenuDropmarker);
 
+		delete this._window.backToOwner;
 		this._window = null;
 	},
   
@@ -456,27 +484,53 @@ BackToOwner.prototype = {
 		}
 
 		if (!owner) {
-			let opener = aTab.linkedBrowser.contentWindow.opener;
+			let openerChromeWindow = aTab.ownerDocument.defaultView.opener;
+			let childDocument = aTab.linkedBrowser.contentDocument;
+			let childWindow = aTab.linkedBrowser.contentWindow;
+			let childURI = childDocument.referrer;
+			let opener = childWindow.opener || openerChromeWindow;
 			if (opener) {
 				opener = opener.top || opener;
 				WindowManager.getWindows('navigator:browser')
 					.some(function(aWindow) {
-						var tabs = Array.slice(aWindow.gBrowser.mTabContainer.childNodes);
-						var removingTabs = aWindow.gBrowser._removingTabs || [];
+						var b = aWindow.gBrowser;
+						var selectedTab = b.selectedTab;
+						var tabs = Array.slice(b.mTabContainer.childNodes);
+						var removingTabs = b._removingTabs || [];
+						tabs.splice(tabs.indexOf(selectedTab), 1);
+						tabs.unshift(selectedTab);
 						if (tabs
 							.some(function(aTab) {
-								if (aTab.linkedBrowser.contentWindow == opener &&
-									removingTabs.indexOf(aTab) < 0)
+								if (
+									aTab.linkedBrowser &&
+									(
+										aTab.linkedBrowser.contentWindow == opener ||
+										(
+											aWindow == openerChromeWindow &&
+											this.checkTabContainsPage(aTab, childURI)
+										)
+									) &&
+									removingTabs.indexOf(aTab) < 0
+									)
 									return owner = aTab;
 								return false;
-							}))
+							}, this))
 							return true;
 						return false;
-					});
+					}, this);
 			}
 		}
 
 		return owner;
+	},
+	checkTabContainsPage : function(aTab, aURI)
+	{
+		aURI = String(aURI);
+		return [aTab.linkedBrowser.contentWindow].some(function(aFrame) {
+			if (aFrame.location.href == aURI)
+				return true;
+			return Array.some(aFrame.frames, arguments.callee);
+		});
 	},
 
 	getNextTab : function(aTab)
@@ -486,16 +540,18 @@ BackToOwner.prototype = {
 
 		try {
 			if (this.SessionStore.getTabValue(aTab, this.NEXT_IS_CLOSED) == 'true')
-				return this.UNDO_CLOSE_TAB;
+				return this.SessionStore.getTabValue(aTab, this.NEXT_IS_CLOSED_WINDOW) == 'true' ?
+						this.UNDO_CLOSE_WINDOW :
+						this.UNDO_CLOSE_TAB ;
 		}
 		catch(e) {
 		}
 
-		var children;
+		var children = [];
 		if (this.treeStyleTab) {
 			children = this.treeStyleTab.getChildTabs(aTab);
 		}
-		else {
+		if (!children.length) {
 			let opener = aTab.linkedBrowser.contentWindow;
 			let id = this.getTabId(aTab);
 			children = [];
@@ -570,12 +626,14 @@ BackToOwner.prototype = {
 	setOwnerTab : function(aTab, aOwnerTab)
 	{
 		if (!aTab || !aTab.parentNode)
-			return;
+			return null;
 
 		var tab = this.selectedTab;
 		var ownerTab = aOwnerTab || this.getOwnerTab(aTab);
-		if (ownerTab && ownerTab.ownerDocument == this.document)
+		if (ownerTab)
 			this.SessionStore.setTabValue(aTab, this.OWNER, this.getTabId(ownerTab));
+
+		return ownerTab;
 	},
 
 	closeTab : function(aTab)
@@ -696,20 +754,22 @@ BackToOwner.prototype = {
 
 		aEvent.stopPropagation();
 
-		if (ownerTab.ownerDocument == this.document) {
-			this.setOwnerTab(tab, ownerTab);
-			this.selectedTab = ownerTab;
-		}
+		var isDifferentWindow = ownerTab.ownerDocument != this.document;
+		this.setOwnerTab(tab, ownerTab);
+		this.selectedTab = ownerTab;
 
-		if (this.shouldCloseTab(tab)) {
-			if (this.shouldCloseWindow(tab)) {
-				timer.setTimeout(function(aSelf) { aSelf._window.close(); }, 0, this);
-				ownerTab.linkedBrowser.contentWindow.focus();
-			}
-			else {
+		if (isDifferentWindow) {
+			if (prefs.getPref(this.PREFROOT+'shouldCloseWindow') &&
+				prefs.getPref('browser.tabs.closeWindowWithLastTab') &&
+				this.shouldCloseWindow(tab)) {
 				this.SessionStore.setTabValue(ownerTab, this.NEXT_IS_CLOSED, 'true');
-				this.closeTab(tab);
+				this.SessionStore.setTabValue(ownerTab, this.NEXT_IS_CLOSED_WINDOW, 'true');
+				timer.setTimeout(function(aSelf) { aSelf._window.close(); }, 0, this);
 			}
+		}
+		else if (this.shouldCloseTab(tab)) {
+			this.SessionStore.setTabValue(ownerTab, this.NEXT_IS_CLOSED, 'true');
+			this.closeTab(tab);
 		}
 
 		return true;
@@ -742,13 +802,28 @@ BackToOwner.prototype = {
 
 		aEvent.stopPropagation();
 
-		if (nextTab == this.UNDO_CLOSE_TAB) {
-			this.SessionStore.setTabValue(tab, this.NEXT_IS_CLOSED, '');
-			nextTab = this._window.undoCloseTab();
-		}
-		else {
-			if (nextTab.ownerDocument == this.document)
+		switch (nextTab)
+		{
+			case this.UNDO_CLOSE_WINDOW:
+				this.SessionStore.setTabValue(tab, this.NEXT_IS_CLOSED, '');
+				this.SessionStore.setTabValue(tab, this.NEXT_IS_CLOSED_WINDOW, '');
+				let (win = this._window.undoCloseWindow(),
+					self = this) {
+					win.addEventListener('load', function() {
+						win.removeEventListener('load', arguments.callee, false);
+						self.setOwnerTab(win.gBrowser.selectedTab, tab);
+					}, false);
+				}
+				break;
+
+			case this.UNDO_CLOSE_TAB:
+				this.SessionStore.setTabValue(tab, this.NEXT_IS_CLOSED, '');
+				nextTab = this._window.undoCloseTab();
+				break;
+
+			default:
 				this.selectedTab = nextTab;
+				break;
 		}
 
 		if (nextTab && nextTab instanceof Ci.nsIDOMElement)
@@ -770,7 +845,9 @@ BackToOwner.prototype = {
 		//  * Firefox changes the state of "canGoBack" before "command" command is fired, if it is in-page link.
 		timer.setTimeout(function(aSelf) {
 			aSelf.updateCommands();
-			aSelf.setOwnerTab(aSelf.selectedTab);
+			var ownerTab = aSelf.setOwnerTab(aSelf.selectedTab);
+			if (ownerTab && ownerTab.ownerDocument != aSelf.document)
+				ownerTab.ownerDocument.defaultView.backToOwner.updateCommands(true);
 		}, 0, this);
 	},
 
