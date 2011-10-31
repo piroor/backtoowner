@@ -611,6 +611,8 @@ BackToOwner.prototype = {
 					// we have to do this with delay because tab's relations are updated
 					// after the TabOpen event is fired.
 					aSelf.setOwnerTab(aTab);
+					if (!aTab.selected)
+						aSelf.updateCommands(true);
 				}, 0, this, aEvent.originalTarget);
 				return;
 
