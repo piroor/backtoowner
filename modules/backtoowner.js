@@ -607,7 +607,7 @@ BackToOwner.prototype = {
 		}
 		catch(e) {
 		}
-		var id = (new Date()).getTime()+'-'+parseInt(Math.random() * 10000);
+		var id = Date.now()+'-'+parseInt(Math.random() * 10000);
 		this.SessionStore.setTabValue(aTab, this.ID, id);
 		return id;
 	},
@@ -678,7 +678,7 @@ BackToOwner.prototype = {
 				return this.updateCommands(aEvent.originalTarget != this.selectedTab);
 
 			case 'TabSelect':
-				return this.SessionStore.setTabValue(aEvent.originalTarget, this.LAST_FOCUSED, (new Date()).getTime());
+				return this.SessionStore.setTabValue(aEvent.originalTarget, this.LAST_FOCUSED, Date.now());
 
 			case 'popupshowing':
 				if (aEvent.target == aEvent.currentTarget) {
