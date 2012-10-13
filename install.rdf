@@ -6,7 +6,7 @@
                    em:id="backtoowner@piro.sakura.ne.jp"
                    em:name="Back to Owner Tab"
                    em:version="0.3.2011110601"
-                   em:creator="SHIMODA Hiroshi"
+                   em:creator="YUKI &quot;Piro&quot; Hiroshi"
                    em:description="Backs to the owner tab."
                    em:homepageURL="http://piro.sakura.ne.jp/xul/backtoowner/"
                    em:optionsURL="about:blank?backtoowner-config"
@@ -20,13 +20,17 @@
       <RDF:Description em:locale="en-US"
                        em:name="Back to Owner Tab"
                        em:description="Backs to the owner tab, if there is no history to back."
-                       em:homepageURL="http://piro.sakura.ne.jp/xul/_backtoowner.html.en"/>
+                       em:homepageURL="http://piro.sakura.ne.jp/xul/_backtoowner.html.en">
+        <em:creator>YUKI "Piro" Hiroshi</em:creator>
+      </RDF:Description>
     </em:localized>
     <em:localized>
       <RDF:Description em:locale="ja"
                        em:name="親のタブに戻る（Back to Owner Tab）"
                        em:description="それ以上「戻る」で戻れない場合に、親のタブに戻ります。"
-                       em:homepageURL="http://piro.sakura.ne.jp/xul/_backtoowner.html"/>
+                       em:homepageURL="http://piro.sakura.ne.jp/xul/_backtoowner.html">
+        <em:creator>YUKI "Piro" Hiroshi</em:creator>
+      </RDF:Description>
     </em:localized>
 
 
