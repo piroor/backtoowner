@@ -41,13 +41,13 @@
 	<prefpane id="prefpane-general" label="&config.general;">
 		<preferences>
 			<preference id="shouldCloseTab"
-				name="extensions.backtoowner@piro.sakura.ne.jp.shouldCloseTab;"
+				name="extensions.backtoowner@piro.sakura.ne.jp.shouldCloseTab"
 				type="bool"/>
 			<preference id="shouldCloseTree"
-				name="extensions.backtoowner@piro.sakura.ne.jp.shouldCloseTree;"
+				name="extensions.backtoowner@piro.sakura.ne.jp.shouldCloseTree"
 				type="bool"/>
 			<preference id="shouldCloseWindow"
-				name="extensions.backtoowner@piro.sakura.ne.jp.shouldCloseWindow;"
+				name="extensions.backtoowner@piro.sakura.ne.jp.shouldCloseWindow"
 				type="bool"/>
 		</preferences>
 		<checkbox id="shouldCloseTab-checkbox"
