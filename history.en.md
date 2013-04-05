@@ -1,6 +1,8 @@
 # History
 
  - master/HEAD
+ - 0.3.2013040601
+   * Verified to work on Nightly 23.0a1.
  - 0.3.2012122901
    * Wosk on Nightly 20.0a1.
    * Drop support for Firefox 9 and older versions.
