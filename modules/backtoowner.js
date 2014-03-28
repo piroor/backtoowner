@@ -14,7 +14,7 @@
  * The Original Code is the Back to Owner Tab.
  *
  * The Initial Developer of the Original Code is YUKI "Piro" Hiroshi.
- * Portions created by the Initial Developer are Copyright (C) 2011
+ * Portions created by the Initial Developer are Copyright (C) 2011-2014
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s): YUKI "Piro" Hiroshi <piro.outsider.reflex@gmail.com>
@@ -138,6 +138,10 @@ BackToOwner.prototype = {
 	get canGoForward()
 	{
 		return this.browser.canGoForward;
+	},
+	get disableForwardButtonAttributeName()
+	{
+		return 'CombinedBackForward' in this._window ? 'occluded-by-urlbar' : 'disabled' ;
 	},
 	
 	get backCommand() 
@@ -303,10 +307,12 @@ BackToOwner.prototype = {
 		else {
 			aCommand.removeAttribute(this.FAKE_CAN_GO_FORWARD);
 
-			if (this.canGoForward)
-				aCommand.removeAttribute('disabled');
-			else
-				aCommand.setAttribute('disabled', true);
+			if (this.canGoForward) {
+				aCommand.removeAttribute(this.disableForwardButtonAttributeName);
+			}
+			else {
+				aCommand.setAttribute(this.disableForwardButtonAttributeName, true);
+			}
 		}
 	},
 
@@ -340,15 +346,17 @@ BackToOwner.prototype = {
 				this.getNextTab(this.selectedTab)
 				) {
 				aCommand.setAttribute(this.FAKE_CAN_GO_FORWARD, true);
-				aCommand.removeAttribute('disabled');
+				aCommand.removeAttribute(this.disableForwardButtonAttributeName);
 			}
 			else {
 				aCommand.removeAttribute(this.FAKE_CAN_GO_FORWARD);
 				if (aForceUpdate) {
-					if (!this.canGoForward)
-						aCommand.setAttribute('disabled', true);
-					else
-						aCommand.removeAttribute('disabled');
+					if (!this.canGoForward) {
+						aCommand.setAttribute(this.disableForwardButtonAttributeName, true);
+					}
+					else {
+						aCommand.removeAttribute(this.disableForwardButtonAttributeName);
+					}
 				}
 			}
 		}
