@@ -343,7 +343,7 @@ BackToOwner.prototype = {
 				) {
 				aCommand.setAttribute(this.FAKE_CAN_GO_FORWARD, true);
 				aCommand.removeAttribute('disabled');
-				this.setForwardButtonOcclusion(true);
+				this.setForwardButtonOcclusion(false);
 			}
 			else {
 				aCommand.removeAttribute(this.FAKE_CAN_GO_FORWARD);
