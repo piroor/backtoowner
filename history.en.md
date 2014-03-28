@@ -1,6 +1,7 @@
 # History
 
  - master/HEAD
+ - 0.3.2014032801
    * Works on Firefox 29 and later
  - 0.3.2013040601
    * Verified to work on Nightly 23.0a1.
