@@ -139,10 +139,6 @@ BackToOwner.prototype = {
 	{
 		return this.browser.canGoForward;
 	},
-	get disableForwardButtonAttributeName()
-	{
-		return 'CombinedBackForward' in this._window ? 'occluded-by-urlbar' : 'disabled' ;
-	},
 	
 	get backCommand() 
 	{
@@ -307,12 +303,12 @@ BackToOwner.prototype = {
 		else {
 			aCommand.removeAttribute(this.FAKE_CAN_GO_FORWARD);
 
-			if (this.canGoForward) {
-				aCommand.removeAttribute(this.disableForwardButtonAttributeName);
-			}
-			else {
-				aCommand.setAttribute(this.disableForwardButtonAttributeName, true);
-			}
+			if (this.canGoForward)
+				aCommand.removeAttribute('disabled');
+			else
+				aCommand.setAttribute('disabled', true);
+
+			this.setForwardButtonOcclusion(!this.canGoForward);
 		}
 	},
 
@@ -346,20 +342,25 @@ BackToOwner.prototype = {
 				this.getNextTab(this.selectedTab)
 				) {
 				aCommand.setAttribute(this.FAKE_CAN_GO_FORWARD, true);
-				aCommand.removeAttribute(this.disableForwardButtonAttributeName);
+				aCommand.removeAttribute('disabled');
+				this.setForwardButtonOcclusion(true);
 			}
 			else {
 				aCommand.removeAttribute(this.FAKE_CAN_GO_FORWARD);
 				if (aForceUpdate) {
-					if (!this.canGoForward) {
-						aCommand.setAttribute(this.disableForwardButtonAttributeName, true);
-					}
-					else {
-						aCommand.removeAttribute(this.disableForwardButtonAttributeName);
-					}
+					if (!this.canGoForward)
+						aCommand.setAttribute('disabled', true);
+					else
+						aCommand.removeAttribute('disabled');
+					this.setForwardButtonOcclusion(!this.canGoForward);
 				}
 			}
 		}
+	},
+	setForwardButtonOcclusion : function(aOccluded)
+	{
+		if ('CombinedBackForward' in this._window)
+			this._window.CombinedBackForward.setForwardButtonOcclusion(aOccluded);
 	},
 
 	updateCommands : function(aForceUpdate)
