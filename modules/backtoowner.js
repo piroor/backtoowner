@@ -687,7 +687,7 @@ BackToOwner.prototype = {
 				return this.updateCommands(aEvent.originalTarget != this.selectedTab);
 
 			case 'TabSelect':
-				return this.SessionStore.setTabValue(aEvent.originalTarget, this.LAST_FOCUSED, String(Date.now()9);
+				return this.SessionStore.setTabValue(aEvent.originalTarget, this.LAST_FOCUSED, String(Date.now()));
 
 			case 'popupshowing':
 				if (aEvent.target == aEvent.currentTarget) {
