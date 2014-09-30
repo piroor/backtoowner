@@ -424,7 +424,7 @@ BackToOwner.prototype = {
 		}
 
 		var nextTab = this.getNextTab(this.selectedTab);
-		if (nextTab && nextTab instanceof Element) {
+		if (nextTab && nextTab instanceof this._window.Element) {
 			let fragment = this.document.createDocumentFragment();
 			let item = fragment.appendChild(this.document.createElement('menuitem'));
 			item.setAttribute('label', nextTab.label);
@@ -835,7 +835,7 @@ BackToOwner.prototype = {
 				break;
 		}
 
-		if (nextTab && nextTab instanceof Element)
+		if (nextTab && nextTab instanceof this._window.Element)
 			this.setOwnerTab(nextTab, tab);
 
 		return true;
