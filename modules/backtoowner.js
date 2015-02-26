@@ -816,8 +816,9 @@ BackToOwner.prototype = {
 			case this.UNDO_CLOSE_WINDOW:
 				this.SessionStore.setTabValue(tab, this.NEXT_IS_CLOSED, '');
 				this.SessionStore.setTabValue(tab, this.NEXT_IS_CLOSED_WINDOW, '');
-				let (win = this._window.undoCloseWindow(),
-					self = this) {
+				{
+					let win = this._window.undoCloseWindow();
+					let self = this;
 					win.addEventListener('load', function() {
 						win.removeEventListener('load', arguments.callee, false);
 						self.setOwnerTab(win.gBrowser.selectedTab, tab);
