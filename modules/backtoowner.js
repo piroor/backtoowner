@@ -444,9 +444,10 @@ BackToOwner.prototype = {
 			return;
 
 		var items = aPopup.querySelectorAll('.'+this.EXTRA_MENU_ITEM);
-		Array.forEach(items, function(aItem) {
+		for (let aItem of items)
+		{
 			aItem.parentNode.removeChild(aItem);
-		});
+		}
 	},
 
 	getOwnerTab : function(aTab)
@@ -467,7 +468,7 @@ BackToOwner.prototype = {
 			if (id) {
 				WindowManager.getWindows('navigator:browser')
 					.some(function(aWindow) {
-						var tabs = Array.slice(aWindow.gBrowser.mTabContainer.childNodes);
+						var tabs = [...aWindow.gBrowser.mTabContainer.childNodes];
 						var removingTabs = aWindow.gBrowser._removingTabs || [];
 						if (tabs.some(function(aTab) {
 								if (this.getTabId(aTab) == id &&
@@ -504,7 +505,7 @@ BackToOwner.prototype = {
 					.some(function(aWindow) {
 						var b = aWindow.gBrowser;
 						var selectedTab = b.selectedTab;
-						var tabs = Array.slice(b.mTabContainer.childNodes);
+						var tabs = [...b.mTabContainer.childNodes];
 						var removingTabs = b._removingTabs || [];
 						tabs.splice(tabs.indexOf(selectedTab), 1);
 						tabs.unshift(selectedTab);
@@ -535,10 +536,10 @@ BackToOwner.prototype = {
 	checkTabContainsPage : function(aTab, aURI)
 	{
 		aURI = String(aURI);
-		return [aTab.linkedBrowser.contentWindow].some(function(aFrame) {
+		return [aTab.linkedBrowser.contentWindow].some(function checkMatched(aFrame) {
 			if (aFrame.location.href == aURI)
 				return true;
-			return Array.some(aFrame.frames, arguments.callee);
+			return [...aFrame.frames].some(checkMatched);
 		});
 	},
 
@@ -566,7 +567,7 @@ BackToOwner.prototype = {
 			children = [];
 			WindowManager.getWindows('navigator:browser')
 				.forEach(function(aWindow) {
-					var tabs = Array.slice(aWindow.gBrowser.mTabContainer.childNodes);
+					var tabs = [...aWindow.gBrowser.mTabContainer.childNodes];
 					var removingTabs = aWindow.gBrowser._removingTabs;
 					tabs.forEach(function(aCheckingTab) {
 						if (
