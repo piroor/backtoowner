@@ -536,11 +536,11 @@ BackToOwner.prototype = {
 	checkTabContainsPage : function(aTab, aURI)
 	{
 		aURI = String(aURI);
-		return [aTab.linkedBrowser.contentWindow].some(function checkMatched(aFrame) {
+		return (function checkMatched(aFrame) {
 			if (aFrame.location.href == aURI)
 				return true;
-			return [...aFrame.frames].some(checkMatched);
-		});
+			return Array.prototype.some.call(aFrame.frames, checkMatched);
+		})(aTab.linkedBrowser.contentWindow);
 	},
 
 	getNextTab : function(aTab)
